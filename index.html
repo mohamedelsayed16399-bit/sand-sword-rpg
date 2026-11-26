@@ -19,7 +19,7 @@ canvas#c{position:fixed;inset:0;width:100%;height:100%;display:block}
 #comp{position:fixed;top:calc(max(6px,env(safe-area-inset-top)) + 78px);left:6px;background:#000a;border:1px solid #c9a35a66;border-radius:10px;padding:4px 8px;font-size:12px;z-index:5;pointer-events:none;max-width:200px;display:flex;gap:6px;align-items:center}
 #arrow{display:inline-block;font-size:18px;transition:transform .15s;color:#ffd24a}
 #toast{position:fixed;top:30%;left:50%;transform:translateX(-50%);background:#000c;border:1px solid #ffd24a88;border-radius:12px;padding:8px 14px;font-size:14px;z-index:30;opacity:0;transition:opacity .25s;pointer-events:none;max-width:86vw;text-align:center}
-#btns{position:fixed;right:10px;bottom:calc(14px + env(safe-area-inset-bottom));display:flex;flex-direction:column;gap:8px;align-items:flex-end;z-index:6}
+#btns{direction:ltr;position:fixed;right:10px;bottom:calc(14px + env(safe-area-inset-bottom));display:flex;flex-direction:column;gap:8px;align-items:flex-end;z-index:6}
 #btns .sm{display:flex;gap:6px}
 button,.btn{font:inherit;color:#fff3d6;background:linear-gradient(#6b4a22,#4a2f12);border:1px solid #e0b866;border-radius:10px;padding:9px 13px;font-size:14px;cursor:pointer}
 button:active{filter:brightness(1.3)}
@@ -71,7 +71,7 @@ input{font:inherit;background:#0008;color:#fff;border:1px solid #c9a35a;border-r
 <div id="toast"></div>
 <div id="joyzone"></div><div id="joy"><div id="knob"></div></div>
 <div id="btns">
- <div class="sm"><button id="bMap">🗺️ خريطة</button><button id="bQ">📜 مهام</button><button id="bInv">🎒 حقيبة</button></div>
+ <div class="sm"><button id="bSnd">🔊</button><button id="bSk">⭐ مهارات</button><button id="bMap">🗺️ خريطة</button><button id="bQ">📜 مهام</button><button id="bInv">🎒 حقيبة</button></div>
  <button id="act">تفاعل</button>
 </div>
 <div id="modal"><div id="panel"></div></div>
@@ -190,6 +190,8 @@ function houseArt(c,px,py,TS,seed){const u=TS/40,w=TS*2,h=TS*2,pal=[['#d8c39a','
 const _sp={};
 function spriteURL(kind,id,size=120){const k=kind+id+size;if(_sp[k])return _sp[k];const cv=document.createElement('canvas');cv.width=cv.height=size;const c=cv.getContext('2d');const S=size*.78;
  if(kind==='mon')monster(c,size/2,size*.92,S,id,0,0);else person(c,size/2,size*.92,S,LOOK[id]||LOOK.warrior,0,0);return _sp[k]=cv.toDataURL()}
+
+function boardArt(c,x,y,S){const u=S/40;c.save();c.translate(x,y);c.fillStyle='#5a3a1a';c.fillRect(-12*u,-30*u,3*u,30*u);c.fillRect(9*u,-30*u,3*u,30*u);c.fillStyle='#8a5a2a';c.fillRect(-14*u,-36*u,28*u,18*u);c.fillStyle='#e8d8a8';c.fillRect(-10*u,-33*u,9*u,7*u);c.fillRect(1*u,-33*u,9*u,5*u);c.fillRect(-8*u,-24*u,10*u,5*u);c.fillStyle='#c33';circ(c,-6*u,-33*u,1.2*u,'#c33');c.restore()}
 'use strict';
 const $=id=>document.getElementById(id);
 const W=96,H=96,SEED=20261126;
@@ -329,7 +331,7 @@ const NPCS=[],MONS=[],CHESTS=[],PICKS=[],QUESTS=[...MAIN];
 const SAVEKEY='sandsword_v1';
 const wait=ms=>new Promise(r=>setTimeout(r,ms));
 function newState(name,cls){
- return{name,cls,lvl:1,xp:0,hp:60,mp:20,gold:30,inv:{w1:1,a1:1,p1:3},eq:{w:'w1',a:'a1',c:null},q:{},dead:{},taken:{},opened:{},time:0,kills:0,flags:{},wx:'clear',wxT:60,x:48.5,y:51.5,play:0,seen:{}};
+ return{name,cls,lvl:1,xp:0,hp:60,mp:20,gold:30,inv:{w1:1,a1:1,p1:3},eq:{w:'w1',a:'a1',c:null},q:{},dead:{},taken:{},opened:{},time:0,kills:0,flags:{},wx:'clear',wxT:60,x:48.5,y:51.5,play:0,seen:{},sp:0,sk:{atk:0,hp:0,mp:0,def:0,crit:0,pow:0},bnt:[],bdone:{}};
 }
 function esc(s){return String(s).replace(/[&<>]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;'}[c]))}
 function item(id){return ITEMS[id]||{n:id,e:'❔',t:'m'}}
@@ -338,14 +340,14 @@ function give(id,n=1){S.inv[id]=inv(id)+n;if(S.inv[id]<=0)delete S.inv[id]}
 function stats(){
  const c=CLASSES[S.cls],w=item(S.eq.w||'x'),a=item(S.eq.a||'x'),ch=S.eq.c?item(S.eq.c):{};
  const L=S.lvl;
- return{maxHp:38+L*10+c.hp*L+(ch.hp||0),maxMp:12+L*4+c.mp*L+(ch.mp||0),atk:3+L*2+c.atk+(w.v||0)+(ch.atk||0),def:L+(a.v||0)+(ch.def||0)};
+ const k=S.sk||{};return{maxHp:38+L*10+c.hp*L+(ch.hp||0)+(k.hp||0)*12,maxMp:12+L*4+c.mp*L+(ch.mp||0)+(k.mp||0)*6,atk:3+L*2+c.atk+(w.v||0)+(ch.atk||0)+(k.atk||0)*2,def:L+(a.v||0)+(ch.def||0)+Math.round((k.def||0)*1.5)};
 }
 const xpNeed=l=>Math.round(18*Math.pow(l,1.7));
 function toast(t,ms=2200){const e=$('toast');e.textContent=t;e.style.opacity=1;clearTimeout(toast.t);toast.t=setTimeout(()=>e.style.opacity=0,ms)}
 function beep(f=440,d=.08,type='square',v=.04){try{const A=beep.a||(beep.a=new(window.AudioContext||window.webkitAudioContext)());const o=A.createOscillator(),g=A.createGain();o.type=type;o.frequency.value=f;g.gain.value=v;o.connect(g);g.connect(A.destination);o.start();g.gain.exponentialRampToValueAtTime(.0001,A.currentTime+d);o.stop(A.currentTime+d)}catch(e){}}
 function save(){if(!S)return;S.x=P.x;S.y=P.y;try{localStorage.setItem(SAVEKEY,JSON.stringify(S))}catch(e){}}
-function gainXp(n){S.xp+=n;let up=false;while(S.xp>=xpNeed(S.lvl)&&S.lvl<40){S.xp-=xpNeed(S.lvl);S.lvl++;up=true}
- if(up){const s=stats();S.hp=s.maxHp;S.mp=s.maxMp;toast('⭐ ارتفع مستواك إلى '+S.lvl+'!',3000);beep(660,.3,'triangle');const sk=CLASSES[S.cls].sk.find(k=>k.lv===S.lvl);if(sk)setTimeout(()=>toast('🔓 مهارة جديدة: '+sk.n,3200),1800)}}
+function gainXp(n){S.xp+=n;let up=false;while(S.xp>=xpNeed(S.lvl)&&S.lvl<40){S.xp-=xpNeed(S.lvl);S.lvl++;up=true;S.sp=(S.sp||0)+1}
+ if(up){const s=stats();S.hp=s.maxHp;S.mp=s.maxMp;toast('⭐ ارتفع مستواك إلى '+S.lvl+'! (نقطة مهارة جديدة)',3000);beep(660,.3,'triangle');const sk=CLASSES[S.cls].sk.find(k=>k.lv===S.lvl);if(sk)setTimeout(()=>toast('🔓 مهارة جديدة: '+sk.n,3200),1800)}}
 // ===== entities =====
 function mkEnemy(id,lvl){const b=ENEMY[id],k=lvl-1;return{id,n:b.n,e:b.e,lvl,hp:Math.round(b.hp*(1+.28*k)),atk:Math.round(b.atk*(1+.14*k)),def:Math.round(b.def*(1+.1*k)),xp:Math.round(b.xp*(1+.15*k)),g:Math.round(b.g*(1+.12*k)),boss:b.boss}}
 function biomeAt(x,y){
@@ -409,7 +411,7 @@ function completeQuest(q){
  if(q.id==='m5')S.flags.won=1;save()}
 function onKill(en,mon){
  S.kills++;
- for(const q of QUESTS){const st=S.q[q.id];if(st&&st.s==='active'&&q.obj.t==='kill'&&q.obj.what===en.id){st.p++;if(objDone(q))toast('🎯 هدف المهمة تم: '+q.title+' (روح سلّم)',3000);else toast('🎯 '+qProgress(q),1800)}}
+ for(const q of QUESTS){const st=S.q[q.id];if(st&&st.s==='active'&&q.obj.t==='kill'&&q.obj.what===en.id){st.p++;if(objDone(q)){if(q.auto)completeQuest(q);else toast('🎯 هدف المهمة تم: '+q.title+' (روح سلّم)',3000)}else toast('🎯 '+qProgress(q),1800)}}
 }
 function onPick(it){for(const q of QUESTS){const st=S.q[q.id];if(st&&st.s==='active'&&q.obj.t==='collect'&&q.obj.item===it){if(objDone(q))toast('🎯 جمعت المطلوب: '+q.title,3000);else toast('🎯 '+qProgress(q),1800)}}}
 function questTarget(q){
@@ -464,6 +466,7 @@ function talk(npc,text){
  if(npc.shop)opts.push(`<button onclick="A('shop','${npc.shop}')">🛒 المتجر</button>`);
  if(npc.role==='healer')opts.push(`<button onclick="A('heal')">💚 علاج كامل (${Math.max(5,S.lvl*3)} ذهب)</button>`);
  if(npc.role==='hermit')opts.push(`<button onclick="A('bless')">🌙 دعاء الناسك (يرجّع الطاقة)</button>`);
+ if(npc.role==='shop'||npc.role==='captain'||npc.role==='commander')opts.push(`<button onclick="A('sleep')">🛏️ نام لحد الصباح (15 ذهب)</button>`);
  opts.push(`<button onclick="A('rumor')">🗣️ أخبار وإشاعات</button>`);
  opts.push(`<button onclick="closeModal()">👋 وداعاً</button>`);
  openModal(`<div class="who"><img class="em" src="${spriteURL('p',npc.id,80)}" width="56" height="56"><div><b>${npc.n}</b><small>${LOC_NAME[npc.poi]}</small></div></div><div class="say">${esc(intro)}</div><div class="opts">${opts.join('')}</div>`)}
@@ -478,6 +481,7 @@ const ACT={
  heal(){const c=Math.max(5,S.lvl*3),s=stats();if(S.gold<c)return dlgSay('ذهبك مش كفاية يا ابني، خد راحتك وارجع.');S.gold-=c;S.hp=s.maxHp;S.mp=s.maxMp;beep(700,.2,'triangle');dlgSay('خلاص، رجعتلك صحتك وطاقتك. ربنا يقويك.')},
  bless(){const s=stats();S.mp=s.maxMp;S.hp=Math.min(s.maxHp,S.hp+Math.round(s.maxHp*.3));beep(700,.2,'triangle');dlgSay('الصحراء كريمة لمن يحترمها. روحك رجعت لك.')},
  shop(t){shopUI(+t)},
+ sleep(){if(S.gold<15)return dlgSay('محتاج 15 ذهب للنزل.');S.gold-=15;const s=stats();S.hp=s.maxHp;S.mp=s.maxMp;const h=hourNow();S.time+=((7-h+24)%24)*60;S.wx='clear';save();dlgSay('نمت كويس، والدنيا صباح دلوقتي. صحتك وطاقتك رجعوا.')},
 };
 function A(name,arg){ACT[name]&&ACT[name](arg)}
 // ===== shop =====
@@ -519,6 +523,25 @@ function mapUI(){
  for(const k in POI){const p=POI[k];x.fillText(['village','port','fort','oasis'].includes(k)?'⭐':'🔺',p.x*5+2,p.y*5+2);x.font='bold 18px sans-serif';x.fillStyle='#fff';x.strokeStyle='#000';x.lineWidth=3;x.strokeText(p.n,p.x*5+2,p.y*5+24);x.fillText(p.n,p.x*5+2,p.y*5+24);x.font='bold 24px sans-serif'}
  const tg=S.tracked&&qdef(S.tracked)?questTarget(qdef(S.tracked)):null;if(tg){x.fillStyle='#ff3030';x.beginPath();x.arc(tg.x*5,tg.y*5,8,0,7);x.fill()}
  x.fillStyle='#ffd24a';x.beginPath();x.arc(P.x*5,P.y*5,7,0,7);x.fill();x.strokeStyle='#000';x.lineWidth=2;x.stroke()}
+
+// ===== skills =====
+const SKN={atk:['⚔️','قوة الضربة','+2 هجوم'],hp:['❤️','الصلابة','+12 صحة'],mp:['💧','الطاقة','+6 طاقة'],def:['🛡️','الدفاع','+1.5 دفاع'],crit:['🎯','الحرجة','+3% ضربة حرجة'],pow:['✨','قوة المهارات','+6% ضرر المهارات']};
+function skillUI(){
+ MODAL='skill';openModal(`<h2>⭐ شجرة المهارات <span class="small" style="float:left">نقاط: ${S.sp||0}</span></h2><div class="grid">${Object.keys(SKN).map(k=>{const v=S.sk[k]||0;return`<div class="item"><b>${SKN[k][0]} ${SKN[k][1]} (${v}/10)</b><div class="d">${SKN[k][2]}</div><button ${(S.sp||0)<1||v>=10?'disabled':''} onclick="A4('${k}')">رقّي</button></div>`}).join('')}</div><div class="small" style="margin-top:6px">تاخد نقطة مع كل مستوى جديد.</div><div class="opts" style="margin-top:8px"><button onclick="closeModal()">إغلاق</button></div>`)}
+function A4(k){if((S.sp||0)<1||(S.sk[k]||0)>=10)return;S.sp--;S.sk[k]=(S.sk[k]||0)+1;const s=stats();beep(700,.1,'triangle');save();skillUI()}
+// ===== bounty boards =====
+const BOARDS=[];
+function mkBounties(town){
+ const day=Math.floor(S.time/1440),r=mulberry(hash2(day,town.length,77)*1e9|0),out=[];
+ const pool=Object.keys(ENEMY).filter(k=>!ENEMY[k].boss&&k!=='elite');
+ for(let i=0;i<3;i++){const w=pool[Math.floor(r()*pool.length)],n=3+Math.floor(r()*5),t=1+Math.floor(S.lvl/3);
+  out.push({id:'b_'+day+'_'+town+'_'+i,title:'مطلوب: '+ENEMY[w].n+' ×'+n,obj:{t:'kill',what:w,n},rew:{xp:Math.round((10+n*5)*(1+S.lvl*.35)),g:Math.round((12+n*6)*(1+S.lvl*.3)),items:r()<.3?{p2:1}:{}},side:1,auto:1,bounty:1,giver:'board',turn:'board'})}
+ return out}
+function bountyUI(town){
+ MODAL='board';const list=mkBounties(town).map(b=>{const taken=S.q[b.id],done=taken&&taken.s==='done';return`<div class="item"><b>📌 ${esc(b.title)}</b><div class="d">🎁 ${rewardText(b.rew)}</div>${done?'<span class="small">✔ مكتملة</span>':taken?'<span class="small">⏳ شغالة</span>':`<button onclick="A5('${town}','${b.id}')">أقبل</button>`}</div>`}).join('');
+ openModal(`<h2>📌 لوحة المطلوبين: ${town}</h2><div class="small">التكليفات بتتجدد كل يوم لعبة. بتتسلم تلقائي أول ما تخلص.</div><div class="grid" style="margin-top:8px">${list}</div><div class="opts" style="margin-top:8px"><button onclick="closeModal()">إغلاق</button></div>`)}
+function A5(town,id){const b=mkBounties(town).find(x=>x.id===id);if(!b||S.q[id])return;S.bnt=(S.bnt||[]).slice(-12);S.bnt.push(b);QUESTS.push(b);acceptQuest(b);bountyUI(town)}
+function restoreBounties(){for(const b of S.bnt||[])if(!qdef(b.id))QUESTS.push(b);S.sk=S.sk||{atk:0,hp:0,mp:0,def:0,crit:0,pow:0};S.sp=S.sp||0;S.bdone=S.bdone||{}}
 // ===== battle =====
 let B=null,graceUntil=0;
 function startBattle(mon){
@@ -539,8 +562,8 @@ function eDmg(){const s=stats(),en=B.en;let d=en.atk*(.85+R()*.3);
  d-=s.def*.6;if(B.def)d*=.5;if(B.buff.guard>0)d*=.6;return Math.max(1,Math.round(d))}
 async function bAct(a,arg){
  if(!B||B.busy||B.over)return;B.busy=true;const s=stats(),c=CLASSES[S.cls],en=B.en;let acted=true,hitE=false;B.def=false;
- const crit=()=>R()<(S.cls==='archer'?.25:.1);
- const dmgTo=(mult,ignore)=>{let d=(s.atk*(.85+R()*.3))*mult*(B.buff.atk>0?1.4:1);if(!ignore)d-=en.def*.6;d=Math.max(1,Math.round(d));if(crit()){d=Math.round(d*1.7);B.log.push('💥 ضربة حرجة!')}en.hp-=d;hitE=true;return d};
+ const crit=()=>R()<(S.cls==='archer'?.25:.1)+(S.sk.crit||0)*.03;
+ const dmgTo=(mult,ignore)=>{let d=(s.atk*(.85+R()*.3))*mult*(B.buff.atk>0?1.4:1)*(mult>1?1+(S.sk.pow||0)*.06:1);if(!ignore)d-=en.def*.6;d=Math.max(1,Math.round(d));if(crit()){d=Math.round(d*1.7);B.log.push('💥 ضربة حرجة!')}en.hp-=d;hitE=true;return d};
  if(a==='atk'){const d=dmgTo(1);B.log.push(`⚔️ ضربت ${en.n} بـ ${d}`);beep(300,.07,'square')}
  else if(a==='def'){B.def=true;B.log.push('🛡️ اتخذت وضع الدفاع.');S.mp=Math.min(stats().maxMp,S.mp+3)}
  else if(a==='flee'){if(R()<.55){B.log.push('🏃 هربت بنجاح!');endBattle('flee');return}B.log.push('❌ فشل الهروب!')}
@@ -595,16 +618,18 @@ jz.addEventListener('pointerdown',e=>{joy.on=true;joy.id=e.pointerId;joy.ox=e.cl
 jz.addEventListener('pointermove',e=>{if(!joy.on||e.pointerId!==joy.id)return;let dx=e.clientX-joy.ox,dy=e.clientY-joy.oy;const d=Math.hypot(dx,dy),m=50;if(d>m){dx*=m/d;dy*=m/d}joy.x=dx/m;joy.y=dy/m;kb.style.left=34+dx+'px';kb.style.top=34+dy+'px'});
 const jend=e=>{if(e.pointerId!==joy.id)return;joy.on=false;joy.x=joy.y=0;jv.style.display='none'};
 jz.addEventListener('pointerup',jend);jz.addEventListener('pointercancel',jend);
-$('act').onclick=()=>{if(!MODAL)interact()};$('bInv').onclick=()=>{if(!MODAL)invUI()};$('bQ').onclick=()=>{if(!MODAL)questUI()};$('bMap').onclick=()=>{if(!MODAL)mapUI()};
+$('act').onclick=()=>{if(!MODAL)interact()};$('bInv').onclick=()=>{if(!MODAL)invUI()};$('bQ').onclick=()=>{if(!MODAL)questUI()};$('bMap').onclick=()=>{if(!MODAL)mapUI()};$('bSk').onclick=()=>{if(!MODAL)skillUI()};$('bSnd').onclick=()=>{setMute(!MUTE)};
 function nearest(){
  let best=null,bd=1.6;
  for(const n of NPCS){const d=Math.hypot(n.x-P.x,n.y-P.y);if(d<bd){bd=d;best={k:'npc',o:n,l:n.n}}}
+ for(const b of BOARDS){const d=Math.hypot(b.x-P.x,b.y-P.y);if(d<bd){bd=d;best={k:'board',o:b,l:'لوحة المطلوبين'}}}
  for(const c of CHESTS){if(S.opened[c.id])continue;const d=Math.hypot(c.x-P.x,c.y-P.y);if(d<bd){bd=d;best={k:'chest',o:c,l:'افتح الصندوق'}}}
  for(const k of PICKS){if(S.taken[k.id]||!pickVisible(k))continue;const d=Math.hypot(k.x-P.x,k.y-P.y);if(d<bd){bd=d;best={k:'pick',o:k,l:'التقط '+item(k.item).n}}}
  return best}
 function pickVisible(k){if(k.always)return true;const st=S.q[k.qid];return st&&st.s==='active'}
 function interact(){const n=nearest();if(!n)return;
  if(n.k==='npc')talk(n.o);
+ else if(n.k==='board'){MODAL='board';bountyUI(n.o.n)}
  else if(n.k==='chest'){const c=n.o;S.opened[c.id]=1;
   if(R()<.15){const m={i:-1-CHESTS.indexOf(c),id:pick(['scorpion','wolf','bandit','skeleton']),lvl:Math.max(1,c.tier+1),x:c.x,y:c.y,boss:0};toast('📦 كان فخ! وحش ظهر!');setTimeout(()=>startBattle(m),600);return}
   const g=rnd(8,18)*c.tier,xp=2*c.tier;S.gold+=g;const got=['🪙 '+g];
@@ -648,7 +673,7 @@ let lastH=0;
 function hud(){
  const s=stats();$('nm').textContent=S.name+' '+CLASSES[S.cls].e;$('lv').textContent='م'+S.lvl;
  $('hpb').style.width=Math.max(0,S.hp/s.maxHp*100)+'%';$('mpb').style.width=S.mp/s.maxMp*100+'%';$('xpb').style.width=S.xp/xpNeed(S.lvl)*100+'%';
- $('hpt').textContent='❤️ '+Math.ceil(S.hp)+'/'+s.maxHp;$('gold').textContent='🪙 '+S.gold;
+ $('bSk').textContent='⭐ مهارات'+(S.sp>0?' ('+S.sp+')':'');$('hpt').textContent='❤️ '+Math.ceil(S.hp)+'/'+s.maxHp;$('gold').textContent='🪙 '+S.gold;
  const h=hourNow();$('clock').textContent=(h<12?'🌅':h<18?'☀️':'🌙')+' '+String(Math.floor(h)).padStart(2,'0')+':'+String(Math.floor(h%1*60)).padStart(2,'0');
  $('wx').textContent={clear:'صافي',rain:'🌧️ مطر',sand:'🌪️ عاصفة رمل'}[S.wx];
  let z=null;for(const k in POI)if(Math.hypot(P.x-POI[k].x,P.y-POI[k].y)<POI[k].r+3)z=POI[k].n;
@@ -656,7 +681,7 @@ function hud(){
  $('zone').textContent=z;
  const q=S.tracked&&qdef(S.tracked);const tg=q&&questStatus(q)!=='done'?questTarget(q):null;
  if(tg){const a=Math.atan2(tg.y-P.y,tg.x-P.x);$('arrow').style.transform=`rotate(${a}rad)`;$('ctext').textContent=tg.n+' · '+Math.round(Math.hypot(tg.x-P.x,tg.y-P.y))+' م';$('comp').style.display='flex'}else{$('comp').style.display='none';if(S.tracked&&q&&questStatus(q)==='done')S.tracked=null}
- const n=nearest();const ab=$('act');if(n&&!MODAL){ab.classList.add('on');ab.textContent=n.k==='npc'?'💬 كلّم':n.k==='chest'?'📦 افتح':'✋ خد'}else{ab.classList.remove('on');ab.textContent='تفاعل'}
+ const n=nearest();const ab=$('act');if(n&&!MODAL){ab.classList.add('on');ab.textContent=n.k==='npc'?'💬 كلّم':n.k==='chest'?'📦 افتح':n.k==='board'?'📌 اللوحة':'✋ خد'}else{ab.classList.remove('on');ab.textContent='تفاعل'}
  if(!S.tracked){const a=QUESTS.find(q=>['active','ready'].includes(questStatus(q)));if(a)S.tracked=a.id}
 }
 function draw(t){
@@ -682,6 +707,7 @@ function draw(t){
   if(d==='🏠')houseArt(ctx,px,py,TS,x+y);else scenery(ctx,d,px,py,TS,tm,x,y)}
  const spr=[];
  const vis=(e)=>e.x>x0-2&&e.x<x1+2&&e.y>y0-2&&e.y<y1+2;
+ for(const b of BOARDS)if(vis(b))spr.push({y:b.y,art:'board',x:b.x});
  for(const c of CHESTS)if(!S.opened[c.id]&&vis(c))spr.push({y:c.y,art:'chest',x:c.x});
  for(const k of PICKS)if(!S.taken[k.id]&&pickVisible(k)&&vis(k))spr.push({y:k.y,art:'pick',e:k.e,sh:k.item==='shard',x:k.x});
  for(const m of MONS){if(S.dead[m.i]!==undefined||!vis(m))continue;const b=ENEMY[m.id];spr.push({y:m.y,art:'mon',id:m.id,x:m.x,sz:1,lbl:m.boss?b.n:null,mon:1,mv:Math.hypot(m.vx||0,m.vy||0)>.2,ph:m.i})}
@@ -689,7 +715,8 @@ function draw(t){
  spr.push({y:P.y,art:'me',x:P.x,me:1});
  spr.sort((a,b)=>a.y-b.y);
  for(const s of spr){const px=ox+s.x*TS,py=oy+s.y*TS;
-  if(s.art==='chest')chestArt(ctx,px,py+TS*.3,TS,tm);
+  if(s.art==='board')boardArt(ctx,px,py+TS*.3,TS);
+  else if(s.art==='chest')chestArt(ctx,px,py+TS*.3,TS,tm);
   else if(s.art==='pick')pickArt(ctx,px,py+TS*.3,TS,tm,s.e,s.sh);
   else{ctx.fillStyle='rgba(0,0,0,.28)';ctx.beginPath();ctx.ellipse(px,py+TS*.3,TS*.3,TS*.1,0,0,7);ctx.fill();
    ctx.save();ctx.translate(px,py+TS*.3);if(s.me){const f=P.face<0;if(f)ctx.scale(-1,1);person(ctx,0,0,TS,LOOK[S.cls],tm,P.moving)}
@@ -718,10 +745,19 @@ function newGameUI(){
  const c=CLASSES;
  openModal(`<div class="title"><h2>اسم البطل</h2><input id="pname" maxlength="14" value="${esc(S&&S.name||'')}" placeholder="اكتب اسمك"><h2>اختر فئتك</h2><div class="cls">${Object.keys(c).map(k=>`<button id="cl_${k}" class="${k===pickCls?'sel':''}" onclick="pickClass('${k}')">${c[k].e}<br>${c[k].n}<br><span class="small">${c[k].d}</span></button>`).join('')}</div><div class="opts" style="margin-top:12px"><button onclick="startNew()">🚀 ابدأ الرحلة</button></div></div>`)}
 function pickClass(k){pickCls=k;document.querySelectorAll('.cls button').forEach(b=>b.classList.toggle('sel',b.id==='cl_'+k))}
-function startNew(){const nm=($('pname').value||'').trim()||'بطل';S=newState(nm,pickCls);const s=stats();S.hp=s.maxHp;S.mp=s.maxMp;P.x=48.5;P.y=51.5;MODAL=null;
+function startNew(){const nm=($('pname').value||'').trim()||'بطل';S=newState(nm,pickCls);startMusic();const s=stats();S.hp=s.maxHp;S.mp=s.maxMp;P.x=48.5;P.y=51.5;MODAL=null;
  openModal(`<div class="title"><h2>📖 البداية</h2><p style="text-align:right;font-size:15px;line-height:1.9">منذ مئات السنين، حمت «نجمة الصحراء» عين الماء في واحة النخيل. وفي ليلة بلا قمر، سُرقت النجمة وتكسرت، وبدأت العين تجف.<br><br>أنت ${esc(nm)}، غريب وصل الواحة جريح ومنهك. الشيخ سالم أنقذك، والآن أنت أمل أهل الواحة الأخير.<br><br>🎯 <b>اذهب وكلّم الشيخ سالم</b> (العلامة ❗ فوق رأسه). يقف شرق مركز الواحة.</p><div class="opts"><button onclick="closeModal();save()">يلا نبدأ</button></div></div>`);MODAL='intro';S.tracked=null}
-function loadGame(){try{S=JSON.parse(localStorage.getItem(SAVEKEY));P.x=S.x;P.y=S.y;closeModal();toast('أهلاً من تاني يا '+S.name)}catch(e){newGameUI()}}
-function boot(){genWorld();buildEntities();resize();requestAnimationFrame(frame);titleUI();window.__ready=1}
+function loadGame(){try{S=JSON.parse(localStorage.getItem(SAVEKEY));P.x=S.x;P.y=S.y;restoreBounties();closeModal();startMusic();toast('أهلاً من تاني يا '+S.name)}catch(e){newGameUI()}}
+function boot(){genWorld();buildEntities();for(const k of['village','port','fort']){const p=POI[k],pos=freeNear(p.x+3,p.y-2,4);BOARDS.push({n:p.n,x:pos.x,y:pos.y})}resize();requestAnimationFrame(frame);titleUI();window.__ready=1}
+// ===== music =====
+let MUTE=false;try{MUTE=localStorage.getItem('ss_mute')==='1'}catch(e){}
+const HIJ=[0,1,4,5,7,8,11,12];let musicOn=false,mstep=0;
+function setMute(m){MUTE=m;try{localStorage.setItem('ss_mute',m?'1':'0')}catch(e){}$('bSnd').textContent=m?'🔇':'🔊'}
+function note(f,d,v,type){try{const A=beep.a||(beep.a=new(window.AudioContext||window.webkitAudioContext)());if(A.state==='suspended')A.resume();const o=A.createOscillator(),g=A.createGain();o.type=type;o.frequency.value=f;g.gain.setValueAtTime(0,A.currentTime);g.gain.linearRampToValueAtTime(v,A.currentTime+.05);g.gain.exponentialRampToValueAtTime(.0001,A.currentTime+d);o.connect(g);g.connect(A.destination);o.start();o.stop(A.currentTime+d+.05)}catch(e){}}
+function startMusic(){if(musicOn)return;musicOn=true;setMute(MUTE);
+ setInterval(()=>{if(MUTE||!S||B)return;const night=darkness()>.5,base=146.8*(night?.5:1);mstep++;
+  if(mstep%8===0)note(base/2,3.2,.05,'sine');
+  if(Math.random()<(night?.5:.7)){const deg=HIJ[Math.floor(Math.random()*HIJ.length)];note(base*Math.pow(2,deg/12)*(Math.random()<.3?2:1),1.2,.035,night?'sine':'triangle')}},420)}
 boot();
 window.addEventListener('beforeunload',save);
 </script></body></html>
