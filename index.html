@@ -20,14 +20,14 @@ canvas#c{position:fixed;inset:0;width:100%;height:100%;display:block}
 #arrow{display:inline-block;font-size:18px;transition:transform .15s;color:#ffd24a}
 #toast{position:fixed;top:30%;left:50%;transform:translateX(-50%);background:#000c;border:1px solid #ffd24a88;border-radius:12px;padding:8px 14px;font-size:14px;z-index:30;opacity:0;transition:opacity .25s;pointer-events:none;max-width:86vw;text-align:center}
 #btns{direction:ltr;position:fixed;right:10px;bottom:calc(14px + env(safe-area-inset-bottom));display:flex;flex-direction:column;gap:8px;align-items:flex-end;z-index:6}
-#btns .sm{display:flex;gap:6px}
+#btns .sm{display:flex;gap:6px;position:fixed;right:10px;bottom:calc(170px + env(safe-area-inset-bottom));direction:ltr}
 button,.btn{font:inherit;color:#fff3d6;background:linear-gradient(#6b4a22,#4a2f12);border:1px solid #e0b866;border-radius:10px;padding:9px 13px;font-size:14px;cursor:pointer}
 button:active{filter:brightness(1.3)}
 button:disabled{opacity:.45}
 #act{width:84px;height:84px;border-radius:50%;font-size:15px;background:radial-gradient(#d9a441,#8a5a14);box-shadow:0 0 0 0 #ffd24a;font-weight:700}
 #act.on{animation:pulse 1.1s infinite}
 @keyframes pulse{0%{box-shadow:0 0 0 0 #ffd24acc}100%{box-shadow:0 0 0 18px #ffd24a00}}
-#joyzone{position:fixed;left:0;bottom:0;width:48%;height:46%;z-index:4}
+#dpad{direction:ltr;position:fixed;left:10px;bottom:calc(14px + env(safe-area-inset-bottom));display:grid;grid-template:repeat(3,46px)/repeat(3,46px);gap:4px;z-index:7;touch-action:none}#dpad b{display:flex;align-items:center;justify-content:center;background:#3a240dcc;border:2px solid #e0b866;border-radius:14px;color:#fff3d6;font-size:22px;user-select:none;-webkit-user-select:none;touch-action:none}#dpad b.p{background:#d9a441cc}#joyzone{position:fixed;left:0;bottom:0;width:48%;height:46%;z-index:4}
 #joy{position:fixed;width:120px;height:120px;border-radius:50%;border:2px solid #ffffff44;background:#ffffff14;display:none;z-index:4;pointer-events:none}
 #knob{position:absolute;width:52px;height:52px;border-radius:50%;background:#ffffff66;left:34px;top:34px}
 #modal{position:fixed;inset:0;display:none;align-items:center;justify-content:center;background:#000a;z-index:20;padding:10px}
@@ -69,7 +69,7 @@ input{font:inherit;background:#0008;color:#fff;border:1px solid #c9a35a;border-r
 </div>
 <div id="comp"><span id="arrow">➤</span><span id="ctext">-</span></div>
 <div id="toast"></div>
-<div id="joyzone"></div><div id="joy"><div id="knob"></div></div>
+<div id="dpad"><b data-d="U" style="grid-area:1/2">▲</b><b data-d="L" style="grid-area:2/1">◀</b><b data-d="R" style="grid-area:2/3">▶</b><b data-d="D" style="grid-area:3/2">▼</b></div><div id="joyzone"></div><div id="joy"><div id="knob"></div></div>
 <div id="btns">
  <div class="sm"><button id="bSnd">🔊</button><button id="bSk">⭐ مهارات</button><button id="bMap">🗺️ خريطة</button><button id="bQ">📜 مهام</button><button id="bInv">🎒 حقيبة</button></div>
  <button id="act">تفاعل</button>
@@ -617,6 +617,17 @@ const jz=$('joyzone'),jv=$('joy'),kb=$('knob');
 jz.addEventListener('pointerdown',e=>{joy.on=true;joy.id=e.pointerId;joy.ox=e.clientX;joy.oy=e.clientY;jv.style.display='block';jv.style.left=e.clientX-60+'px';jv.style.top=e.clientY-60+'px';kb.style.left='34px';kb.style.top='34px';jz.setPointerCapture(e.pointerId)});
 jz.addEventListener('pointermove',e=>{if(!joy.on||e.pointerId!==joy.id)return;let dx=e.clientX-joy.ox,dy=e.clientY-joy.oy;const d=Math.hypot(dx,dy),m=50;if(d>m){dx*=m/d;dy*=m/d}joy.x=dx/m;joy.y=dy/m;kb.style.left=34+dx+'px';kb.style.top=34+dy+'px'});
 const jend=e=>{if(e.pointerId!==joy.id)return;joy.on=false;joy.x=joy.y=0;jv.style.display='none'};
+
+const dp={U:0,D:0,L:0,R:0},dk={};
+document.querySelectorAll('#dpad b').forEach(b=>{const d=b.dataset.d;const on=e=>{e.preventDefault();dp[d]=1;b.classList.add('p')},off=e=>{e.preventDefault();dp[d]=0;b.classList.remove('p')};
+b.addEventListener('touchstart',on,{passive:false});b.addEventListener('touchend',off,{passive:false});b.addEventListener('touchcancel',off,{passive:false});
+b.addEventListener('pointerdown',on);b.addEventListener('pointerup',off);b.addEventListener('pointerleave',off);b.addEventListener('pointercancel',off);b.addEventListener('contextmenu',e=>e.preventDefault())});
+// drag-anywhere movement fallback (touch)
+let tm={on:false,id:null,ox:0,oy:0,x:0,y:0};
+addEventListener('touchstart',e=>{if(tm.on||MODAL||e.target.closest('button,#dpad,#modal,.modal'))return;const t=e.changedTouches[0];tm={on:true,id:t.identifier,ox:t.clientX,oy:t.clientY,x:0,y:0}},{passive:true});
+addEventListener('touchmove',e=>{if(!tm.on)return;for(const t of e.changedTouches)if(t.identifier===tm.id){let dx=t.clientX-tm.ox,dy=t.clientY-tm.oy;const d=Math.hypot(dx,dy),m=40;if(d>8){if(d>m){dx*=m/d;dy*=m/d}tm.x=dx/m;tm.y=dy/m}else{tm.x=tm.y=0}}},{passive:true});
+const tend=e=>{for(const t of e.changedTouches)if(t.identifier===tm.id){tm.on=false;tm.x=tm.y=0}};
+addEventListener('touchend',tend);addEventListener('touchcancel',tend);
 jz.addEventListener('pointerup',jend);jz.addEventListener('pointercancel',jend);
 $('act').onclick=()=>{if(!MODAL)interact()};$('bInv').onclick=()=>{if(!MODAL)invUI()};$('bQ').onclick=()=>{if(!MODAL)questUI()};$('bMap').onclick=()=>{if(!MODAL)mapUI()};$('bSk').onclick=()=>{if(!MODAL)skillUI()};$('bSnd').onclick=()=>{setMute(!MUTE)};
 function nearest(){
@@ -649,7 +660,7 @@ function update(dt){
  const paused=!!MODAL;
  if(!paused){
   S.time+=dt*3;S.play+=dt;
-  let mx=joy.x,my=joy.y;if(keys.KeyA||keys.ArrowLeft)mx-=1;if(keys.KeyD||keys.ArrowRight)mx+=1;if(keys.KeyW||keys.ArrowUp)my-=1;if(keys.KeyS||keys.ArrowDown)my+=1;
+  let mx=joy.x+tm.x+dp.R-dp.L,my=joy.y+tm.y+dp.D-dp.U;if(keys.KeyA||keys.ArrowLeft)mx-=1;if(keys.KeyD||keys.ArrowRight)mx+=1;if(keys.KeyW||keys.ArrowUp)my-=1;if(keys.KeyS||keys.ArrowDown)my+=1;
   const m=Math.hypot(mx,my);if(m>1){mx/=m;my/=m}
   if(m>.08){const t=tile[idx(Math.floor(P.x),Math.floor(P.y))];const sp=4.3*(t===T.SHALLOW?.55:1);const nx=P.x+mx*sp*dt,ny=P.y+my*sp*dt;if(canStand(nx,P.y))P.x=nx;if(canStand(P.x,ny))P.y=ny;if(mx!==0)P.face=mx>0?1:-1;P.step+=dt*9;P.moving=1}else P.moving=0;
   // monsters
