@@ -473,7 +473,7 @@ const ACT={
  offer(id){const q=qdef(id);dlgSay(q.intro+'\n\n🎁 المكافأة: '+rewardText(q.rew),`<button onclick="A('accept','${id}')">✔️ أقبل المهمة</button>`)},
  accept(id){acceptQuest(qdef(id));dlgSay('تمام، ربنا معاك. اتحرك وارجعلي.')},
  status(id){const q=qdef(id);dlgSay('لسه شغال على الموضوع؟ '+qProgress(q)+'.\nكمل وأنا مستنيك.')},
- turn(id){const q=qdef(id);if(questStatus(q)==='new')return;completeQuest(q);dlgSay(q.done+'\n\n🎁 '+rewardText(q.rew))},
+ turn(id){const q=qdef(id);if(questStatus(q)!=='ready')return;completeQuest(q);dlgSay(q.done+'\n\n🎁 '+rewardText(q.rew))},
  rumor(){dlgSay(rumor(DLG.npc))},
  heal(){const c=Math.max(5,S.lvl*3),s=stats();if(S.gold<c)return dlgSay('ذهبك مش كفاية يا ابني، خد راحتك وارجع.');S.gold-=c;S.hp=s.maxHp;S.mp=s.maxMp;beep(700,.2,'triangle');dlgSay('خلاص، رجعتلك صحتك وطاقتك. ربنا يقويك.')},
  bless(){const s=stats();S.mp=s.maxMp;S.hp=Math.min(s.maxHp,S.hp+Math.round(s.maxHp*.3));beep(700,.2,'triangle');dlgSay('الصحراء كريمة لمن يحترمها. روحك رجعت لك.')},
