@@ -332,7 +332,7 @@ const NPCS=[],MONS=[],CHESTS=[],PICKS=[],QUESTS=[...MAIN];
 const SAVEKEY='sandsword_v1';
 const wait=ms=>new Promise(r=>setTimeout(r,ms));
 function newState(name,cls){
- return{name,cls,lvl:1,xp:0,hp:60,mp:20,gold:30,inv:{w1:1,a1:1,p1:3},eq:{w:'w1',a:'a1',c:null},q:{},dead:{},taken:{},opened:{},time:0,kills:0,flags:{},wx:'clear',wxT:60,x:48.5,y:51.5,play:0,seen:{},sp:0,sk:{atk:0,hp:0,mp:0,def:0,crit:0,pow:0},bnt:[],bdone:{}};
+ return{diff:0,name,cls,lvl:1,xp:0,hp:60,mp:20,gold:30,inv:{w1:1,a1:1,p1:3},eq:{w:'w1',a:'a1',c:null},q:{},dead:{},taken:{},opened:{},time:0,kills:0,flags:{},wx:'clear',wxT:60,x:48.5,y:51.5,play:0,seen:{},sp:0,sk:{atk:0,hp:0,mp:0,def:0,crit:0,pow:0},bnt:[],bdone:{}};
 }
 function esc(s){return String(s).replace(/[&<>]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;'}[c]))}
 function item(id){return ITEMS[id]||{n:id,e:'❔',t:'m'}}
@@ -350,7 +350,7 @@ function save(){if(!S)return;S.x=P.x;S.y=P.y;try{localStorage.setItem(SAVEKEY,JS
 function gainXp(n){S.xp+=n;let up=false;while(S.xp>=xpNeed(S.lvl)&&S.lvl<40){S.xp-=xpNeed(S.lvl);S.lvl++;up=true;S.sp=(S.sp||0)+1}
  if(up){const s=stats();S.hp=s.maxHp;S.mp=s.maxMp;toast('⭐ ارتفع مستواك إلى '+S.lvl+'! (نقطة مهارة جديدة)',3000);beep(660,.3,'triangle');const sk=CLASSES[S.cls].sk.find(k=>k.lv===S.lvl);if(sk)setTimeout(()=>toast('🔓 مهارة جديدة: '+sk.n,3200),1800)}}
 // ===== entities =====
-function mkEnemy(id,lvl){const b=ENEMY[id],k=lvl-1;return{id,n:b.n,e:b.e,lvl,hp:Math.round(b.hp*(1+.28*k)),atk:Math.round(b.atk*(1+.14*k)),def:Math.round(b.def*(1+.1*k)),xp:Math.round(b.xp*(1+.15*k)),g:Math.round(b.g*(1+.12*k)),boss:b.boss}}
+function mkEnemy(id,lvl){const b=ENEMY[id],k=lvl-1,d=(typeof S!=='undefined'&&S&&S.diff)||0;return{id,n:b.n,e:b.e,lvl,hp:Math.round(b.hp*(1+.28*k)*(1+.3*d)),atk:Math.round(b.atk*(1+.14*k)*(1+.2*d)),def:Math.round(b.def*(1+.1*k)*(1+.1*d)),xp:Math.round(b.xp*(1+.15*k)*(1+.3*d)),g:Math.round(b.g*(1+.12*k)*(1+.3*d)),boss:b.boss}}
 function biomeAt(x,y){
  const d=k=>Math.hypot(x-POI[k].x,y-POI[k].y);
  if(d('ruins')<13)return'ruins';if(d('cave')<12)return'cave';if(d('fort')<12)return'fort';
@@ -514,7 +514,7 @@ function questUI(){
  MODAL='q';const act=QUESTS.filter(q=>['active','ready'].includes(questStatus(q))),done=QUESTS.filter(q=>questStatus(q)==='done');
  const row=q=>{const st=questStatus(q),tg=questTarget(q);return`<div class="q ${st==='done'?'done':''}"><b>${q.side?'🔹':'⭐'} ${esc(q.title)}</b> ${st==='ready'?'<span style="color:#7fff9a">(جاهزة للتسليم)</span>':''}<br>${st==='done'?'✔ مكتملة':esc(qProgress(q))+(tg?'<br>📍 '+esc(tg.n)+' — '+dirName(P.x,P.y,tg.x,tg.y)+' ('+Math.round(Math.hypot(tg.x-P.x,tg.y-P.y))+' م)':'')}${st!=='done'?`<br><button style="padding:3px 9px;font-size:12px;margin-top:4px" onclick="S.tracked='${q.id}';questUI()">${S.tracked===q.id?'📌 متتبَّعة':'تتبّع'}</button>`:''}</div>`};
  const avail=QUESTS.filter(q=>!q.side&&questStatus(q)==='new'&&(!q.pre||(S.q[q.pre]&&S.q[q.pre].s==='done')));
- openModal(`<h2>📜 المهام</h2>${act.map(row).join('')||'<div class="small">مفيش مهام نشطة. كلّم الناس في القرى!</div>'}${avail.length?'<div class="q">📣 المهمة الرئيسية التالية عند: <b>'+esc(NPCS.find(n=>n.id===avail[0].giver).n)+'</b> ('+LOC_NAME[NPCS.find(n=>n.id===avail[0].giver).poi]+')</div>':''}${done.length?'<h2 style="margin-top:12px">المكتملة ('+done.length+')</h2>'+done.map(row).join(''):''}<div class="opts"><button onclick="achUI()">🏆 الإنجازات</button><button onclick="closeModal()">إغلاق</button></div>`)}
+ openModal(`<h2>📜 المهام</h2>${act.map(row).join('')||'<div class="small">مفيش مهام نشطة. كلّم الناس في القرى!</div>'}${avail.length?'<div class="q">📣 المهمة الرئيسية التالية عند: <b>'+esc(NPCS.find(n=>n.id===avail[0].giver).n)+'</b> ('+LOC_NAME[NPCS.find(n=>n.id===avail[0].giver).poi]+')</div>':''}${done.length?'<h2 style="margin-top:12px">المكتملة ('+done.length+')</h2>'+done.map(row).join(''):''}<div class="opts"><button onclick="achUI()">🏆 الإنجازات</button><button onclick="diffUI()">⚙️ الصعوبة</button><button onclick="closeModal()">إغلاق</button></div>`)}
 // ===== map =====
 function mapUI(){
  MODAL='map';openModal(`<h2>🗺️ الخريطة</h2><canvas id="mapc" width="${W*5}" height="${H*5}"></canvas><div class="small">🟡 إنت | ⭐ مدن | 🔺 أماكن خطر</div><div class="opts" style="margin-top:8px"><button onclick="closeModal()">إغلاق</button></div>`);
@@ -600,9 +600,11 @@ function usePortal(p){
  else if(p.kind==='res')residentTalk(p)
  else if(p.kind==='pets')petUI()
  else if(p.kind==='cara')caraUI(p)
+ else if(p.kind==='arena')arenaUI()
+ else if(p.kind==='fish')fishUI(p)
  else if(p.kind==='up'){if(S.dun>1){enterLayer(S.dun-1,'up');toast('⬆️ الطابق '+S.dun,2200)}else{const w=WORLD.O.find(o=>o.kind==='in');exitLayer();P.x=w?w.x:P.x;P.y=w?w.y+1.4:P.y;toast('☀️ خرجت من السراديب',2200)}}
  beep(300,.25,'triangle');save()}
-function portalArt(c,x,y,S,kind,t,p){const u=S/40;if(kind==='cara'){caraArt(c,x,y,S,t);return}c.save();c.translate(x,y);
+function portalArt(c,x,y,S,kind,t,p){const u=S/40;if(kind==='cara'){caraArt(c,x,y,S,t);return}if(kind==='arena'){arenaArt(c,x,y,S,t);return}if(kind==='fish'){fishArt(c,x,y,S,t);return}c.save();c.translate(x,y);
  if(kind==='door'){c.fillStyle='rgba(255,210,80,'+(.5+Math.sin(t*4)*.25)+')';c.beginPath();c.moveTo(0,-4*u);c.lineTo(6*u,-12*u);c.lineTo(-6*u,-12*u);c.fill()}
  else if(kind==='out'){c.fillStyle='#6a4a22';c.fillRect(-14*u,-30*u,28*u,32*u);c.fillStyle='#f4e4b0';c.fillRect(-10*u,-26*u,20*u,26*u);c.fillStyle='rgba(255,255,220,.8)';c.fillRect(-8*u,-24*u,16*u,22*u)}
  else if(kind==='pets'){c.fillStyle='#6a4a22';c.fillRect(-18*u,-26*u,3*u,26*u);c.fillRect(15*u,-26*u,3*u,26*u);c.fillStyle='#b83a3a';c.fillRect(-20*u,-34*u,40*u,9*u);c.fillStyle='#fff3d6';for(let i=0;i<4;i++)c.fillRect((-18+i*10)*u,-34*u,5*u,9*u);c.fillStyle='#fff';c.font='bold '+Math.floor(13*u)+'px sans-serif';c.textAlign='center';c.fillText('رفاق',0,-12*u);petArt(c,10*u,0,S,'hound',t,0)}
@@ -693,6 +695,8 @@ const ACH=[
  ['pet','صاحب رفيق','تبنّى رفيق',()=>!!S.pet,{g:50}],['pet5','مدرّب','درّب رفيقك لأعلى رتبة',()=>S.pet&&S.pet.t>=5,{g:300}],
  ['enh3','حدّاد','قوّي سلاحك لـ +3',()=>S.enh&&S.enh.w>=3,{g:100}],['enh8','أسطورة الحديد','قوّي سلاحك لـ +8',()=>S.enh&&S.enh.w>=8,{g:500,sp:1}],
  ['craft5','صنايعي','صنّع 5 حاجات',()=>(S.cr||0)>=5,{g:80}],['house8','ضيف عزيز','زور 8 بيوت',()=>cnt('hr')>=8,{g:100}],['house16','ابن البلد','زور كل البيوت',()=>cnt('hr')>=16,{g:300,sp:1}],
+ ['ar1','مصارع','اكسب الحلبة مرة',()=>(S.arW||0)>=1,{g:120}],['ar4','بطل الحلبة الأعظم','اكسب الحلبة رتبة 4',()=>(S.arB||0)>=4,{g:600,sp:2}],
+ ['fish5','صياد','اصطد 5 سمكات',()=>(S.fish||0)>=5,{g:80}],['fish20','سيد البحر','اصطد 20 سمكة',()=>(S.fish||0)>=20,{g:300,sp:1}],
  ['cara','تاجر القوافل','اشتري من قافلة',()=>(S.cb||0)>=1,{g:60}]];
 function achCheck(){if(!S)return;S.ach=S.ach||{};for(const a of ACH){if(S.ach[a[0]])continue;let ok=false;try{ok=!!a[3]()}catch(e){}if(ok){S.ach[a[0]]=1;S.gold+=a[4].g;if(a[4].sp)S.sp=(S.sp||0)+a[4].sp;toast('🏆 إنجاز: '+a[1]+' (+'+a[4].g+' ذهب'+(a[4].sp?' +'+a[4].sp+' نقطة مهارة':'')+')',3500);beep(880,.15,'triangle');setTimeout(()=>beep(1180,.2,'triangle'),160);save();break}}}
 function achUI(){MODAL='ach';S.ach=S.ach||{};const n=Object.keys(S.ach).length;
@@ -713,10 +717,50 @@ function caraBuy(i){const p=window.__cp,o=p&&p.offers[i];if(!o||o.sold||S.gold<o
 function caraArt(c,x,y,S,t){const u=S/40;c.save();c.translate(x,y);c.fillStyle='rgba(0,0,0,.25)';c.beginPath();c.ellipse(0,0,16*u,4*u,0,0,7);c.fill();
  const b=Math.sin(t*2)*1.5*u;c.translate(0,b);c.fillStyle='#c8a064';c.beginPath();c.ellipse(0,-14*u,13*u,7*u,0,0,7);c.fill();c.beginPath();c.arc(-4*u,-22*u,5*u,0,7);c.arc(4*u,-22*u,5*u,0,7);c.fill();c.lineWidth=4*u;c.strokeStyle='#c8a064';c.beginPath();c.moveTo(11*u,-16*u);c.quadraticCurveTo(18*u,-26*u,16*u,-34*u);c.stroke();c.fillStyle='#c8a064';c.beginPath();c.ellipse(17*u,-35*u,5*u,3*u,0,0,7);c.fill();
  c.fillRect(-9*u,-9*u,3*u,10*u);c.fillRect(6*u,-9*u,3*u,10*u);c.fillStyle='#b83a3a';c.fillRect(-10*u,-27*u,20*u,6*u);c.fillStyle='#2a6ab8';c.fillRect(-8*u,-31*u,16*u,5*u);c.fillStyle='#ffd24a';c.beginPath();c.arc(0,-40*u,3*u,0,7);c.fill();c.restore()}
+
+const DIFFN=['عادي','صعب (أعداء +30% صحة +20% هجوم، غنايم +30%)','كابوس (أعداء +60% صحة +40% هجوم، غنايم +60%)'];
+function diffUI(){MODAL='diff';openModal(`<h2>⚙️ الصعوبة</h2><div class="q">الأعداء كمان بيكبروا مع مستواك. الصعوبة الحالية: <b>${DIFFN[S.diff||0].split(' ')[0]}</b></div>${DIFFN.map((n,i)=>`<div class="item"><b>${['🙂','😠','💀'][i]} ${n.split(' ')[0]}</b><div class="d">${n}</div><button ${(S.diff||0)===i?'disabled':''} onclick="S.diff=${i};save();diffUI()">اختار</button></div>`).join('')}<div class="opts"><button onclick="questUI()">رجوع</button><button onclick="closeModal()">إغلاق</button></div>`)}
+// ===== arena (حلبة الحصن) =====
+let ARENA=null;
+const AR_EN=[null,['wolf','bandit','skeleton','boar'],['bandit','skeleton','ghost','golem'],['ghost','golem','ogre','mummy'],['ogre','golem','ghost','elite']];
+const AR_FEE=[0,30,80,160,300],AR_REW=[0,150,360,700,1300];
+function arenaUI(msg){MODAL='arena';S.arB=S.arB||0;
+ const rows=[1,2,3,4].map(r=>`<div class="item"><b>${'⭐'.repeat(r)} رتبة ${r}</b><div class="d">4 جولات (آخرها بطل الحلبة) · مستوى الأعداء ${Math.max(1,S.lvl+r-2)} · جايزة ${AR_REW[r]} ذهب + مواد${r>=3?' + جوهرة':''}</div><button ${S.gold<AR_FEE[r]?'disabled':''} onclick="arenaStart(${r})">ادخل 🪙${AR_FEE[r]}</button></div>`).join('');
+ openModal(`<h2>⚔️ حلبة الحصن</h2>${msg?'<div class="small">'+msg+'</div>':''}<div class="q">قاتل 4 جولات ورا بعض بدون هروب. بين كل جولة بتتعافى 30%. لو خسرت بتخسر رسم الدخول بس. رتبتك الأعلى: <b>${S.arB}</b> · انتصارات الحلبة: <b>${S.arW||0}</b></div>${rows}<div class="opts"><button onclick="closeModal()">إغلاق</button></div>`)}
+function arenaStart(r){if(S.gold<AR_FEE[r])return;S.gold-=AR_FEE[r];ARENA={r,w:0};save();closeModal();arenaFight()}
+function arenaFight(){const r=ARENA.r,last=ARENA.w===3,id=last?AR_EN[r][3]:AR_EN[r][Math.floor(R()*3)],lvl=Math.max(1,Math.min(30,S.lvl+r-2+(last?1:0)));
+ const m={i:'ar'+Date.now()+ARENA.w,id,lvl,x:P.x,y:P.y,boss:0,arena:1};B=null;startBattle(m);if(last)B.log.push('🏟️ بطل الحلبة نزل الساحة!');else B.log.push('🏟️ الجولة '+(ARENA.w+1)+' من 4');renderBattle()}
+function arenaWin(){const en=B.en,s=stats();B.over=true;gainXp(Math.round(en.xp*.6));ARENA.w++;
+ if(ARENA.w>=4){const r=ARENA.r,g=AR_REW[r];S.gold+=g;S.arW=(S.arW||0)+1;S.arB=Math.max(S.arB||0,r);const d=[];for(const m of['hide','bone','venom','ore','ecto']){if(R()<.35+.1*r){give(m,1+Math.floor(r/2));d.push(item(m).e)}}if(r>=3){give('gem');d.push('💎')}
+  ARENA=null;save();beep(880,.3,'triangle');setTimeout(()=>beep(1180,.3,'triangle'),200);
+  openModal(`<div class="title"><h2>🏆 بطل الحلبة!</h2><p>كسبت ${g} 🪙 ${d.join(' ')}</p></div><div class="opts"><button onclick="closeModal();B=null;arenaUI()">الحلبة</button><button onclick="closeModal();B=null">خروج</button></div>`);MODAL='win';graceUntil=performance.now()+1500;return}
+ S.hp=Math.min(s.maxHp,S.hp+s.maxHp*.3);S.mp=Math.min(s.maxMp,S.mp+s.maxMp*.3);save();
+ openModal(`<div class="title"><h2>✅ الجولة ${ARENA.w}/4</h2><p>+${Math.round(en.xp*.6)} خبرة · اتعافيت 30%<br>الجولة الجاية ${ARENA.w===3?'<b>بطل الحلبة</b>':''}</p></div><div class="opts"><button onclick="closeModal();arenaFight()">كمّل ⚔️</button></div>`);MODAL='win';}
+function arenaLose(){B.over=true;const s=stats();ARENA=null;S.hp=Math.max(1,Math.round(s.maxHp*.5));S.mp=s.maxMp;save();
+ openModal(`<div class="title"><h2>🏟️ خسرت في الحلبة</h2><p>خسرت رسم الدخول بس. رجّعوك بنص صحتك.</p></div><div class="opts"><button onclick="closeModal();B=null">تمام</button></div>`);MODAL='lose';graceUntil=performance.now()+1500}
+function arenaArt(c,x,y,S,t){const u=S/40;c.save();c.translate(x,y);c.fillStyle='#8a7a5a';c.fillRect(-22*u,-30*u,44*u,30*u);c.fillStyle='#2a1a10';c.beginPath();c.moveTo(-10*u,0);c.lineTo(-10*u,-18*u);c.quadraticCurveTo(0,-30*u,10*u,-18*u);c.lineTo(10*u,0);c.fill();c.fillStyle='#b83a3a';c.fillRect(-20*u,-42*u,8*u,16*u);c.fillRect(12*u,-42*u,8*u,16*u);c.strokeStyle='#ffd24a';c.lineWidth=2.5*u;c.beginPath();c.moveTo(-6*u,-36*u);c.lineTo(6*u,-24*u);c.moveTo(6*u,-36*u);c.lineTo(-6*u,-24*u);c.stroke();c.restore()}
+// ===== fishing =====
+Object.assign(ITEMS,{fish1:{n:'سمكة',e:'🐟',t:'p',heal:35,p:10,d:'يشفي 35'},fish2:{n:'سمكة ذهبية',e:'🐠',t:'p',heal:120,p:70,d:'يشفي 120'},fish3:{n:'سمكة قرش صغيرة',e:'🦈',t:'p',heal:200,mana:30,p:120,d:'يشفي 200 + 30 طاقة'},pearl:{n:'لؤلؤة',e:'🫧',t:'m',p:150,d:'للبيع فقط'}});
+let FISH=null,fishTimer=null;
+function fishSpots(){const out=[];for(const k of['port','oasis','village']){const p=POI[k];let n=0;
+  for(let r=3;r<=14&&n<2;r++)for(let a=0;a<64&&n<2;a++){const x=Math.round(p.x+Math.cos(a/64*6.283)*r),y=Math.round(p.y+Math.sin(a/64*6.283)*r);if(!inb(x,y)||tile[idx(x,y)]===T.PATH)continue;
+   const t=tile[idx(x,y)];if(t!==T.SAND&&t!==T.GRASS)continue;if(!walk(x,y))continue;
+   if(![[1,0],[-1,0],[0,1],[0,-1]].some(([dx,dy])=>{const q=tile[idx(x+dx,y+dy)];return q===T.SHALLOW||q===T.DEEP}))continue;
+   if(out.some(o=>Math.hypot(o.x-x,o.y-y)<5))continue;out.push({x:x+.5,y:y+.5,kind:'fish',id:'f'+out.length});n++}}
+ return out}
+function fishUI(spot){S.fcd=S.fcd||{};if((S.fcd[spot.id]||0)>S.time){const w=Math.ceil((S.fcd[spot.id]-S.time)/3);return toast('🎣 السمك خاف. جرّب بعد '+w+' ثانية تقريبًا')}
+ FISH={spot,tries:3,caught:[],pos:0,dir:1,w:.24+Math.random()*.08,z:.2+Math.random()*.5,speed:1.1,res:''};MODAL='fish';fishRender();clearInterval(fishTimer);
+ fishTimer=setInterval(()=>{if(MODAL!=='fish'||!FISH){clearInterval(fishTimer);return}FISH.pos+=FISH.dir*.03*FISH.speed;if(FISH.pos>=1){FISH.pos=1;FISH.dir=-1}if(FISH.pos<=0){FISH.pos=0;FISH.dir=1}const m=$('fm');if(m)m.style.left=(FISH.pos*100)+'%'},30)}
+function fishRender(){const f=FISH;openModal(`<h2>🎣 صيد السمك</h2><div class="q">محاولات: <b>${f.tries}</b> · اصطدت: ${f.caught.map(c=>item(c).e).join(' ')||'—'}<br><span class="small">${f.res||'اضغط "اسحب" لما المؤشر يكون جوه المنطقة الخضراء'}</span></div><div style="position:relative;height:34px;background:#2a1a10;border:2px solid #c9a35a;border-radius:10px;margin:10px 0;overflow:hidden;direction:ltr"><div style="position:absolute;top:0;bottom:0;left:${f.z*100}%;width:${f.w*100}%;background:#3a9a4a88"></div><div id="fm" style="position:absolute;top:0;bottom:0;width:6px;background:#ffd24a;left:${f.pos*100}%"></div></div><div class="opts"><button ${f.tries<=0?'disabled':''} onclick="fishPull()" style="font-size:20px;padding:12px">🎣 اسحب!</button><button onclick="fishEnd()">${f.tries<=0?'خلاص':'كفاية'}</button></div>`)}
+function fishPull(){const f=FISH;if(!f||f.tries<=0)return;f.tries--;const hit=f.pos>=f.z&&f.pos<=f.z+f.w;
+ if(hit){const r=Math.random(),id=r<.08?'pearl':r<.2?'fish3':r<.5?'fish2':'fish1';give(id);f.caught.push(id);f.res='✅ مسكت '+item(id).n+'!';S.fish=(S.fish||0)+1;beep(900,.12,'triangle')}else{f.res='❌ فلتت منك';beep(200,.12,'sawtooth')}
+ f.z=.1+Math.random()*.6;f.w=Math.max(.14,.3-f.caught.length*.03);f.speed=1.1+(3-f.tries)*.35;fishRender();if(f.tries<=0){S.fcd[f.spot.id]=S.time+300;save()}}
+function fishEnd(){if(FISH&&FISH.tries>0&&FISH.tries<3&&!(S.fcd[FISH.spot.id]>S.time))S.fcd[FISH.spot.id]=S.time+150;clearInterval(fishTimer);FISH=null;save();closeModal()}
+function fishArt(c,x,y,S,t){const u=S/40;c.save();c.translate(x,y);c.strokeStyle='#6a4a22';c.lineWidth=3*u;c.beginPath();c.moveTo(-6*u,0);c.lineTo(8*u,-30*u);c.stroke();c.strokeStyle='rgba(255,255,255,.7)';c.lineWidth=1*u;c.beginPath();c.moveTo(8*u,-30*u);c.quadraticCurveTo(16*u,-22*u,16*u,-6*u+Math.sin(t*3)*2*u);c.stroke();c.fillStyle='#e04a3a';c.beginPath();c.arc(16*u,-6*u+Math.sin(t*3)*2*u,2.5*u,0,7);c.fill();c.fillStyle='#8a5a2a';c.fillRect(-12*u,-6*u,12*u,6*u);c.restore()}
 // ===== battle =====
 let B=null,graceUntil=0;
 function startBattle(mon){
- const en=mkEnemy(mon.id,mon.lvl);if(mon.boss===2){en.hp=Math.round(en.hp*1.2)}
+ const en=mkEnemy(mon.id,mon.boss||mon.arena?mon.lvl:mon.lvl+Math.floor(Math.max(0,S.lvl-mon.lvl)*.35));if(mon.boss===2){en.hp=Math.round(en.hp*1.2)}
  B={mon,en,max:en.hp,log:[`⚔️ ظهر ${en.n} (مستوى ${en.lvl})!`],buff:{atk:0,guard:0,dodge:0},poison:0,turn:0,def:false,busy:false,over:false};
  MODAL='battle';beep(220,.2,'sawtooth');renderBattle()}
 function renderBattle(hitE,hitP){
@@ -737,6 +781,7 @@ async function bAct(a,arg){
  const dmgTo=(mult,ignore)=>{let d=(s.atk*(.85+R()*.3))*mult*(B.buff.atk>0?1.4:1)*(mult>1?1+(S.sk.pow||0)*.06:1);if(!ignore)d-=en.def*.6;d=Math.max(1,Math.round(d));if(crit()){d=Math.round(d*1.7);B.log.push('💥 ضربة حرجة!')}en.hp-=d;hitE=true;return d};
  if(a==='atk'){const d=dmgTo(1);B.log.push(`⚔️ ضربت ${en.n} بـ ${d}`);beep(300,.07,'square')}
  else if(a==='def'){B.def=true;B.log.push('🛡️ اتخذت وضع الدفاع.');S.mp=Math.min(stats().maxMp,S.mp+3)}
+ else if(a==='flee'&&B.mon.arena){B.log.push('🏟️ مفيش هروب في الحلبة!')}
  else if(a==='flee'){if(R()<.55){B.log.push('🏃 هربت بنجاح!');endBattle('flee');return}B.log.push('❌ فشل الهروب!')}
  else if(a==='item'){const it=item(arg);if(it.heal)S.hp=Math.min(s.maxHp,S.hp+it.heal);if(it.mana)S.mp=Math.min(s.maxMp,S.mp+it.mana);give(arg,-1);B.log.push(`${it.e} استخدمت ${it.n}.`);beep(700,.1,'triangle')}
  else if(a==='sk'){const k=c.sk[arg];S.mp-=k.mp;
@@ -760,6 +805,7 @@ async function bAct(a,arg){
  if(S.hp<=0){loseBattle();return}
  B.busy=false;renderBattle()}
 function winBattle(){
+ if(B.mon.arena){arenaWin();return}
  const en=B.en,mon=B.mon;B.over=true;S.dead[mon.i]=S.time;
  let g=Math.round(en.g*(.7+R()*.6)),xp=en.xp;S.gold+=g;
  const drops=[];
@@ -774,6 +820,7 @@ function winBattle(){
  openModal(`<div class="title"><h2>🏆 انتصار!</h2><p style="font-size:40px;margin:4px">${en.e}💀</p><p>+${xp} خبرة · +${g} 🪙<br>${drops.join(' ')||''}</p></div><div class="opts"><button onclick="closeModal();B=null">متابعة</button></div>`);
  MODAL='win';graceUntil=performance.now()+1500}
 function loseBattle(){
+ if(B.mon.arena){arenaLose();return}
  B.over=true;const s=stats();const lost=Math.floor(S.gold*.1);S.gold-=lost;S.hp=s.maxHp;S.mp=s.maxMp;P.x=POI.village.x+.5;P.y=POI.village.y+3.5;save();
  openModal(`<div class="title"><h2>💀 سقطت!</h2><p>${esc(B.en.n)} غلبك. فقت في واحة النخيل وخسرت ${lost} ذهب.</p></div><div class="opts"><button onclick="closeModal();B=null">أكمل</button></div>`);MODAL='lose';graceUntil=performance.now()+2500}
 function endBattle(){B.over=true;closeModal();graceUntil=performance.now()+3000;
@@ -870,7 +917,7 @@ function hud(){
  if(S.dun)z=typeof S.dun==='string'?'🏠 داخل بيت':'🕳️ السرداب · الطابق '+S.dun;$('zone').textContent=z;
  const q=S.tracked&&!S.dun&&qdef(S.tracked);const tg=q&&questStatus(q)!=='done'?questTarget(q):null;
  if(tg){const a=Math.atan2(tg.y-P.y,tg.x-P.x);$('arrow').style.transform=`rotate(${a}rad)`;$('ctext').textContent=tg.n+' · '+Math.round(Math.hypot(tg.x-P.x,tg.y-P.y))+' م';$('comp').style.display='flex'}else{$('comp').style.display='none';if(S.tracked&&q&&questStatus(q)==='done')S.tracked=null}
- const n=nearest();const ab=$('act');if(n&&!MODAL){ab.classList.add('on');ab.textContent=n.k==='npc'?'💬 كلّم':n.k==='chest'?'📦 افتح':n.k==='board'?'📌 اللوحة':n.k==='portal'?(({in:'🕳️ ادخل',down:'⬇️ انزل',up:'⬆️ اطلع',door:'🚪 ادخل',out:'🚪 اخرج',bed:'🛏️ ارتاح',res:'💬 كلّم',pets:'🐾 الرفاق',cara:'🐪 تجارة'})[n.o.kind]):'✋ خد'}else{ab.classList.remove('on');ab.textContent='تفاعل'}
+ const n=nearest();const ab=$('act');if(n&&!MODAL){ab.classList.add('on');ab.textContent=n.k==='npc'?'💬 كلّم':n.k==='chest'?'📦 افتح':n.k==='board'?'📌 اللوحة':n.k==='portal'?(({in:'🕳️ ادخل',down:'⬇️ انزل',up:'⬆️ اطلع',door:'🚪 ادخل',out:'🚪 اخرج',bed:'🛏️ ارتاح',res:'💬 كلّم',pets:'🐾 الرفاق',cara:'🐪 تجارة',arena:'⚔️ الحلبة',fish:'🎣 اصطد'})[n.o.kind]):'✋ خد'}else{ab.classList.remove('on');ab.textContent='تفاعل'}
  if(!S.tracked){const a=QUESTS.find(q=>['active','ready'].includes(questStatus(q)));if(a)S.tracked=a.id}
 }
 function draw(t){
@@ -943,7 +990,7 @@ function pickClass(k){pickCls=k;document.querySelectorAll('.cls button').forEach
 function startNew(){const nm=($('pname').value||'').trim()||'بطل';S=newState(nm,pickCls);startMusic();const s=stats();S.hp=s.maxHp;S.mp=s.maxMp;P.x=48.5;P.y=51.5;MODAL=null;
  openModal(`<div class="title"><h2>📖 البداية</h2><p style="text-align:right;font-size:15px;line-height:1.9">منذ مئات السنين، حمت «نجمة الصحراء» عين الماء في واحة النخيل. وفي ليلة بلا قمر، سُرقت النجمة وتكسرت، وبدأت العين تجف.<br><br>أنت ${esc(nm)}، غريب وصل الواحة جريح ومنهك. الشيخ سالم أنقذك، والآن أنت أمل أهل الواحة الأخير.<br><br>🎯 <b>اذهب وكلّم الشيخ سالم</b> (العلامة ❗ فوق رأسه). يقف شرق مركز الواحة.</p><div class="opts"><button onclick="closeModal();save()">يلا نبدأ</button></div></div>`);MODAL='intro';S.tracked=null}
 function loadGame(){try{S=JSON.parse(localStorage.getItem(SAVEKEY));P.x=S.x;P.y=S.y;restoreBounties();if(S.dun){const f=S.dun,px=S.x,py=S.y;S.dun=0;P.x=S.wpos[0];P.y=S.wpos[1];enterLayer(f,'in');P.x=px;P.y=py}closeModal();startMusic();toast('أهلاً من تاني يا '+S.name)}catch(e){newGameUI()}}
-function boot(){genWorld();buildEntities();for(const k of['village','port','fort']){const p=POI[k],pos=freeNear(p.x+3,p.y-2,4);BOARDS.push({n:p.n,x:pos.x,y:pos.y})}{const p=POI.cave,pos=freeNear(Math.round(p.x),Math.round(p.y+5),4);PORTALS.push({x:pos.x,y:pos.y,kind:'in'});{const pp=POI.port,q=freeNear(pp.x+2,pp.y+3,5);PORTALS.push({x:q.x,y:q.y,kind:'pets'})}HOUSES.forEach((h,i)=>{let bx=h.x+1,by=h.y+2;if(!walk(bx,by)){if(walk(bx-1,by))bx--;else return}PORTALS.push({x:bx+.5,y:by+.35,kind:'door',h:i})})}resize();requestAnimationFrame(frame);titleUI();window.__ready=1}
+function boot(){genWorld();buildEntities();for(const k of['village','port','fort']){const p=POI[k],pos=freeNear(p.x+3,p.y-2,4);BOARDS.push({n:p.n,x:pos.x,y:pos.y})}{const p=POI.cave,pos=freeNear(Math.round(p.x),Math.round(p.y+5),4);PORTALS.push({x:pos.x,y:pos.y,kind:'in'});{const pp=POI.port,q=freeNear(pp.x+2,pp.y+3,5);PORTALS.push({x:q.x,y:q.y,kind:'pets'});const fp=POI.fort,fq=freeNear(fp.x-2,fp.y+4,5);PORTALS.push({x:fq.x,y:fq.y,kind:'arena'});PORTALS.push(...fishSpots())}HOUSES.forEach((h,i)=>{let bx=h.x+1,by=h.y+2;if(!walk(bx,by)){if(walk(bx-1,by))bx--;else return}PORTALS.push({x:bx+.5,y:by+.35,kind:'door',h:i})})}resize();requestAnimationFrame(frame);titleUI();window.__ready=1}
 // ===== music =====
 let MUTE=false;try{MUTE=localStorage.getItem('ss_mute')==='1'}catch(e){}
 const HIJ=[0,1,4,5,7,8,11,12];let musicOn=false,mstep=0;
