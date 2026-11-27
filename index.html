@@ -598,11 +598,13 @@ function usePortal(p){
  else if(p.kind==='out'){const wp=S.wpos;exitLayer();P.x=wp[0];P.y=wp[1];toast('☀️ خرجت',1500)}
  else if(p.kind==='bed'){const s=stats();S.hp=s.maxHp;S.mp=s.maxMp;toast('🛏️ ارتحت وتعافيت بالكامل (مجانًا)',2600)}
  else if(p.kind==='res')residentTalk(p)
+ else if(p.kind==='pets')petUI()
  else if(p.kind==='up'){if(S.dun>1){enterLayer(S.dun-1,'up');toast('⬆️ الطابق '+S.dun,2200)}else{const w=WORLD.O.find(o=>o.kind==='in');exitLayer();P.x=w?w.x:P.x;P.y=w?w.y+1.4:P.y;toast('☀️ خرجت من السراديب',2200)}}
  beep(300,.25,'triangle');save()}
 function portalArt(c,x,y,S,kind,t,p){const u=S/40;c.save();c.translate(x,y);
  if(kind==='door'){c.fillStyle='rgba(255,210,80,'+(.5+Math.sin(t*4)*.25)+')';c.beginPath();c.moveTo(0,-4*u);c.lineTo(6*u,-12*u);c.lineTo(-6*u,-12*u);c.fill()}
  else if(kind==='out'){c.fillStyle='#6a4a22';c.fillRect(-14*u,-30*u,28*u,32*u);c.fillStyle='#f4e4b0';c.fillRect(-10*u,-26*u,20*u,26*u);c.fillStyle='rgba(255,255,220,.8)';c.fillRect(-8*u,-24*u,16*u,22*u)}
+ else if(kind==='pets'){c.fillStyle='#6a4a22';c.fillRect(-18*u,-26*u,3*u,26*u);c.fillRect(15*u,-26*u,3*u,26*u);c.fillStyle='#b83a3a';c.fillRect(-20*u,-34*u,40*u,9*u);c.fillStyle='#fff3d6';for(let i=0;i<4;i++)c.fillRect((-18+i*10)*u,-34*u,5*u,9*u);c.fillStyle='#fff';c.font='bold '+Math.floor(13*u)+'px sans-serif';c.textAlign='center';c.fillText('رفاق',0,-12*u);petArt(c,10*u,0,S,'hound',t,0)}
  else if(kind==='bed'){c.fillStyle='#6a4a22';c.fillRect(-18*u,-18*u,36*u,18*u);c.fillStyle='#c8d8f0';c.fillRect(-16*u,-16*u,32*u,12*u);c.fillStyle='#a03030';c.fillRect(-4*u,-16*u,20*u,12*u);c.fillStyle='#fff';c.fillRect(-16*u,-16*u,9*u,8*u)}
  else if(kind==='res'){c.fillStyle='rgba(0,0,0,.25)';c.beginPath();c.ellipse(0,0,TSF(S)*.3,TSF(S)*.1,0,0,7);c.fill();person(c,0,0,S,LOOK[p.look],t,0)}
  else if(kind==='in'){c.fillStyle='#4a4238';c.beginPath();c.moveTo(-26*u,0);c.lineTo(-22*u,-34*u);c.quadraticCurveTo(0,-52*u,22*u,-34*u);c.lineTo(26*u,0);c.fill();c.fillStyle='#0a0710';c.beginPath();c.moveTo(-16*u,0);c.lineTo(-14*u,-28*u);c.quadraticCurveTo(0,-42*u,14*u,-28*u);c.lineTo(16*u,0);c.fill();c.fillStyle='rgba(255,140,40,'+(.5+Math.sin(t*5)*.2)+')';c.beginPath();c.arc(0,-12*u,3*u,0,7);c.fill()}
@@ -655,6 +657,29 @@ function craftUI(msg){
  openModal(`<h2>⚒️ الورشة</h2>${msg?'<div class="small">'+msg+'</div>':''}<div class="q">${mats}<br><span class="small">المواد بتيجي من الوحوش (الزعماء 3 قطع) ومن السراديب.</span></div><h3>تصنيع</h3>${rec}<h3>تقوية المعدات</h3>${en}<div class="opts"><button onclick="invUI()">رجوع للحقيبة</button><button onclick="closeModal()">إغلاق</button></div>`)}
 function craftDo(i){const[id,c]=RECIPES[i];if(!canPay(c))return;for(const k in c)give(k,-c[k]);give(id);beep(800,.12,'triangle');save();craftUI('صنعت '+item(id).n)}
 function enhDo(k){const c=enhCost(k);S.enh=S.enh||{w:0,a:0};if(S.enh[k]>=8||!canPay(c))return;for(const x in c){if(x==='g')S.gold-=c[x];else give(x,-c[x])}S.enh[k]++;beep(500,.2,'sawtooth');setTimeout(()=>beep(900,.2,'triangle'),150);save();craftUI('✨ نجحت التقوية! '+(k==='w'?'السلاح':'الدرع')+' بقى +'+S.enh[k])}
+// ===== companions =====
+const PETS={falcon:{n:'صقر',e:'🦅',p:220,d:'يضرب كل دور بضرر يتجاهل الدفاع (35% من هجومك)'},hound:{n:'كلب صحراوي',e:'🐕',p:260,d:'بيعض (25%) ويقلل ضرر العدو 20%'},cat:{n:'قطة الواحة',e:'🐈',p:200,d:'بتشفيك 4% من صحتك كل دور وبتخربش (10%)'}};
+const PET={x:0,y:0,on:false};
+function petMul(){return 1+.15*((S.pet&&S.pet.t)||0)}
+function petUI(msg){
+ MODAL='pets';const cur=S.pet;
+ const list=Object.keys(PETS).map(k=>`<div class="item"><b>${PETS[k].e} ${PETS[k].n}</b><div class="d">${PETS[k].d}</div><button ${S.gold<PETS[k].p||(cur&&cur.k===k)?'disabled':''} onclick="petBuy('${k}')">${cur&&cur.k===k?'معاك':'تبنّي 🪙'+PETS[k].p}</button></div>`).join('');
+ const tr=cur?`<div class="item"><b>🎓 تدريب ${PETS[cur.k].n} (رتبة ${cur.t}/5)</b><div class="d">كل رتبة بتزود قوته 15%</div><button ${cur.t>=5||S.gold<120*(cur.t+1)?'disabled':''} onclick="petTrain()">${cur.t>=5?'وصل للحد':'درّبه 🪙'+120*(cur.t+1)}</button></div>`:'';
+ openModal(`<h2>🐾 سوق الرفاق</h2>${msg?'<div class="small">'+msg+'</div>':''}<div class="q">رفيقك بيمشي وراك وبيساعدك في كل قتال. معاك: <b>${cur?PETS[cur.k].e+' '+PETS[cur.k].n:'لا أحد'}</b> · 🪙 ${S.gold}</div>${list}${tr}<div class="opts"><button onclick="closeModal()">إغلاق</button></div>`)}
+function petBuy(k){if(S.gold<PETS[k].p)return;S.gold-=PETS[k].p;S.pet={k,t:0};PET.on=false;beep(800,.15,'triangle');save();petUI('✅ رفيقك الجديد: '+PETS[k].n)}
+function petTrain(){const c=S.pet;if(!c||c.t>=5||S.gold<120*(c.t+1))return;S.gold-=120*(c.t+1);c.t++;beep(700,.15,'triangle');save();petUI('⭐ اتدرّب! رتبته '+c.t)}
+function petBattle(en,s,log){ // returns damage reduction factor for enemy hit
+ if(!S.pet)return 1;const p=S.pet,m=petMul();let red=1;
+ if(p.k==='falcon'){const d=Math.max(1,Math.round(s.atk*.35*m*(.85+R()*.3)));en.hp-=d;log.push(`🦅 الصقر انقض على ${en.n} بـ ${d}`)}
+ else if(p.k==='hound'){const d=Math.max(1,Math.round((s.atk*.25*m-en.def*.3)*(.85+R()*.3)));en.hp-=d;log.push(`🐕 الكلب عض ${en.n} بـ ${d}`);red=1-Math.min(.5,.2*m)}
+ else{const h=Math.round(s.maxHp*.04*m);S.hp=Math.min(s.maxHp,S.hp+h);const d=Math.max(1,Math.round(s.atk*.1*m));en.hp-=d;log.push(`🐈 القطة شفتك ${h} وخربشت ${d}`)}
+ return red}
+function petArt(c,x,y,S,k,t,mv){const u=S/40;c.save();c.translate(x,y);
+ const b=Math.sin(t*(mv?12:3))*(mv?2:1)*u;
+ if(k==='falcon'){c.translate(0,-18*u+b*2);const f=Math.sin(t*(mv?14:5))*7*u;c.fillStyle='#7a5a3a';c.beginPath();c.ellipse(0,0,7*u,5*u,0,0,7);c.fill();c.beginPath();c.moveTo(-3*u,0);c.lineTo(-16*u,-4*u-f);c.lineTo(-6*u,4*u);c.fill();c.beginPath();c.moveTo(3*u,0);c.lineTo(16*u,-4*u-f);c.lineTo(6*u,4*u);c.fill();c.fillStyle='#f2e6d0';c.beginPath();c.arc(7*u,-3*u,3.4*u,0,7);c.fill();c.fillStyle='#e8a020';c.beginPath();c.moveTo(9*u,-3*u);c.lineTo(13*u,-2*u);c.lineTo(9*u,-1*u);c.fill()}
+ else if(k==='hound'){c.translate(0,b);c.fillStyle='#c89a5a';c.beginPath();c.ellipse(0,-9*u,10*u,6*u,0,0,7);c.fill();c.beginPath();c.arc(9*u,-14*u,5*u,0,7);c.fill();c.fillStyle='#8a5a2a';c.beginPath();c.moveTo(8*u,-18*u);c.lineTo(6*u,-24*u);c.lineTo(12*u,-19*u);c.fill();c.fillRect(-7*u,-5*u,3*u,6*u);c.fillRect(4*u,-5*u,3*u,6*u);c.strokeStyle='#c89a5a';c.lineWidth=3*u;c.beginPath();c.moveTo(-10*u,-11*u);c.quadraticCurveTo(-16*u,-18*u,-14*u,-22*u+Math.sin(t*8)*3*u);c.stroke();c.fillStyle='#222';c.fillRect(11*u,-15*u,2*u,2*u)}
+ else{c.translate(0,b);c.fillStyle='#d8d0c0';c.beginPath();c.ellipse(0,-8*u,8*u,5.5*u,0,0,7);c.fill();c.beginPath();c.arc(8*u,-12*u,4.5*u,0,7);c.fill();c.beginPath();c.moveTo(5*u,-15*u);c.lineTo(5.5*u,-20*u);c.lineTo(8*u,-16*u);c.moveTo(9*u,-16*u);c.lineTo(11*u,-20*u);c.lineTo(12*u,-14*u);c.fill();c.strokeStyle='#d8d0c0';c.lineWidth=2.5*u;c.beginPath();c.moveTo(-8*u,-8*u);c.quadraticCurveTo(-15*u,-14*u,-11*u,-20*u+Math.sin(t*5)*2*u);c.stroke();c.fillStyle='#2a7a3a';c.fillRect(9*u,-13*u,2*u,2*u)}
+ c.restore()}
 // ===== battle =====
 let B=null,graceUntil=0;
 function startBattle(mon){
@@ -665,7 +690,7 @@ function renderBattle(hitE,hitP){
  const s=stats(),c=CLASSES[S.cls],en=B.en;
  const sk=c.sk.filter(k=>k.lv<=S.lvl).map((k,i)=>`<button ${S.mp<k.mp||B.busy?'disabled':''} onclick="bAct('sk',${c.sk.indexOf(k)})">✨ ${k.n} (${k.mp})</button>`).join('');
  const pots=['p1','p2','p3','m1'].filter(id=>inv(id)).map(id=>`<button ${B.busy?'disabled':''} onclick="bAct('item','${id}')">${item(id).e} ${item(id).n.replace('مشروب ','')} ×${inv(id)}</button>`).join('');
- openModal(`<div id="bt"><div class="fighter ${hitP?'hit':''}"><img class="em" src="${spriteURL('p',S.cls,128)}"><b>${esc(S.name)}</b> <span class="small">م${S.lvl}</span><div class="hpbar"><i style="width:${Math.max(0,S.hp/s.maxHp*100)}%;background:#d9433a"></i></div><div class="hpbar" style="height:8px"><i style="width:${S.mp/s.maxMp*100}%;background:#3a7bd9"></i></div><span class="small">${S.hp}/${s.maxHp} · طاقة ${S.mp}</span></div>
+ openModal(`<div id="bt"><div class="fighter ${hitP?'hit':''}"><img class="em" src="${spriteURL('p',S.cls,128)}"><b>${esc(S.name)}</b> <span class="small">م${S.lvl}</span><div class="hpbar"><i style="width:${Math.max(0,S.hp/s.maxHp*100)}%;background:#d9433a"></i></div><div class="hpbar" style="height:8px"><i style="width:${S.mp/s.maxMp*100}%;background:#3a7bd9"></i></div><span class="small">${Math.ceil(S.hp)}/${s.maxHp} · طاقة ${Math.floor(S.mp)}</span></div>
  <div class="fighter ${hitE?'hit':''}"><img class="em" src="${spriteURL('mon',en.id,128)}"><b>${en.n}</b> <span class="small">م${en.lvl}</span><div class="hpbar"><i style="width:${Math.max(0,en.hp/B.max*100)}%;background:#c9a02a"></i></div><span class="small">${Math.max(0,en.hp)}/${B.max}${B.poison?' ☠️':''}${B.stun?' 💫':''}</span></div></div>
  <div id="log">${B.log.slice(-6).map(l=>'<div>'+esc(l)+'</div>').join('')}</div>
  <div class="cols"><button ${B.busy?'disabled':''} onclick="bAct('atk')">⚔️ هجوم</button><button ${B.busy?'disabled':''} onclick="bAct('def')">🛡️ دفاع</button>${sk}<button ${B.busy||en.boss?'disabled':''} onclick="bAct('flee')">🏃 هرب</button></div>${pots?'<div class="cols" style="margin-top:7px">'+pots+'</div>':''}`);
@@ -692,10 +717,12 @@ async function bAct(a,arg){
  renderBattle(hitE,false);await wait(450);
  if(B.poison>0&&en.hp>0){const d=Math.max(2,Math.round(s.atk*.35));en.hp-=d;B.poison--;B.log.push(`☠️ السم أصاب ${en.n} بـ ${d}`)}
  if(en.hp<=0){winBattle();return}
+ const pred=petBattle(en,stats(),B.log);if(S.pet){renderBattle(S.pet.k!=='cat',false);await wait(350)}
+ if(en.hp<=0){winBattle();return}
  // enemy turn
  if(B.buff.dodge>0){B.buff.dodge--;B.log.push(`🌫️ تفاديت هجمة ${en.n}!`)}
  else if(R()<.07){B.log.push(`💨 ${en.n} أخطأ الهدف`)}
- else{const d=eDmg();S.hp-=d;B.log.push(`💢 ${en.n} ضربك بـ ${d}`);beep(150,.12,'sawtooth');renderBattle(false,true);await wait(380)}
+ else{const d=Math.max(1,Math.round(eDmg()*pred));S.hp-=d;B.log.push(`💢 ${en.n} ضربك بـ ${d}`);beep(150,.12,'sawtooth');renderBattle(false,true);await wait(380)}
  B.turn++;B.buff.atk=Math.max(0,B.buff.atk-1);B.buff.guard=Math.max(0,B.buff.guard-1);
  if(S.hp<=0){loseBattle();return}
  B.busy=false;renderBattle()}
@@ -779,6 +806,7 @@ function update(dt){
   let mx=joy.x+tm.x+dp.R-dp.L,my=joy.y+tm.y+dp.D-dp.U;if(keys.KeyA||keys.ArrowLeft)mx-=1;if(keys.KeyD||keys.ArrowRight)mx+=1;if(keys.KeyW||keys.ArrowUp)my-=1;if(keys.KeyS||keys.ArrowDown)my+=1;
   const m=Math.hypot(mx,my);if(m>1){mx/=m;my/=m}
   if(m>.08){const t=tile[idx(Math.floor(P.x),Math.floor(P.y))];const sp=4.3*(t===T.SHALLOW?.55:1);const nx=P.x+mx*sp*dt,ny=P.y+my*sp*dt;if(canStand(nx,P.y))P.x=nx;if(canStand(P.x,ny))P.y=ny;if(mx!==0)P.face=mx>0?1:-1;P.step+=dt*9;P.moving=1}else P.moving=0;
+  {if(!PET.on){PET.x=P.x-.8;PET.y=P.y+.4;PET.on=true}const dx=P.x-.9*P.face-PET.x,dy=P.y+.3-PET.y,k=Math.min(1,dt*4);if(Math.hypot(dx,dy)>6){PET.x=P.x-.8;PET.y=P.y+.4}else{PET.x+=dx*k;PET.y+=dy*k;PET.mv=Math.hypot(dx,dy)>.15}}
   // monsters
   const night=darkness()>.5,now=performance.now();
   for(const mo of MONS){if(S.dead[mo.i]!==undefined){if(mo.boss||!(S.time-S.dead[mo.i]>360))continue;delete S.dead[mo.i];mo.x=mo.hx;mo.y=mo.hy}
@@ -808,7 +836,7 @@ function hud(){
  if(S.dun)z=typeof S.dun==='string'?'🏠 داخل بيت':'🕳️ السرداب · الطابق '+S.dun;$('zone').textContent=z;
  const q=S.tracked&&!S.dun&&qdef(S.tracked);const tg=q&&questStatus(q)!=='done'?questTarget(q):null;
  if(tg){const a=Math.atan2(tg.y-P.y,tg.x-P.x);$('arrow').style.transform=`rotate(${a}rad)`;$('ctext').textContent=tg.n+' · '+Math.round(Math.hypot(tg.x-P.x,tg.y-P.y))+' م';$('comp').style.display='flex'}else{$('comp').style.display='none';if(S.tracked&&q&&questStatus(q)==='done')S.tracked=null}
- const n=nearest();const ab=$('act');if(n&&!MODAL){ab.classList.add('on');ab.textContent=n.k==='npc'?'💬 كلّم':n.k==='chest'?'📦 افتح':n.k==='board'?'📌 اللوحة':n.k==='portal'?(({in:'🕳️ ادخل',down:'⬇️ انزل',up:'⬆️ اطلع',door:'🚪 ادخل',out:'🚪 اخرج',bed:'🛏️ ارتاح',res:'💬 كلّم'})[n.o.kind]):'✋ خد'}else{ab.classList.remove('on');ab.textContent='تفاعل'}
+ const n=nearest();const ab=$('act');if(n&&!MODAL){ab.classList.add('on');ab.textContent=n.k==='npc'?'💬 كلّم':n.k==='chest'?'📦 افتح':n.k==='board'?'📌 اللوحة':n.k==='portal'?(({in:'🕳️ ادخل',down:'⬇️ انزل',up:'⬆️ اطلع',door:'🚪 ادخل',out:'🚪 اخرج',bed:'🛏️ ارتاح',res:'💬 كلّم',pets:'🐾 الرفاق'})[n.o.kind]):'✋ خد'}else{ab.classList.remove('on');ab.textContent='تفاعل'}
  if(!S.tracked){const a=QUESTS.find(q=>['active','ready'].includes(questStatus(q)));if(a)S.tracked=a.id}
 }
 function draw(t){
@@ -844,10 +872,11 @@ function draw(t){
  for(const k of PICKS)if(!S.taken[k.id]&&pickVisible(k)&&vis(k))spr.push({y:k.y,art:'pick',e:k.e,sh:k.item==='shard',x:k.x});
  for(const m of MONS){if(S.dead[m.i]!==undefined||!vis(m))continue;const b=ENEMY[m.id];spr.push({y:m.y,art:'mon',id:m.id,x:m.x,sz:1,lbl:m.boss?b.n:null,mon:1,mv:Math.hypot(m.vx||0,m.vy||0)>.2,ph:m.i})}
  for(const n of NPCS)if(vis(n))spr.push({y:n.y,art:'npc',id:n.id,x:n.x,lbl:n.n,npc:1,mark:npcMark(n)});
+ if(S.pet)spr.push({y:PET.y,art:'pet',x:PET.x,k:S.pet.k,mv:PET.mv});
  spr.push({y:P.y,art:'me',x:P.x,me:1});
  spr.sort((a,b)=>a.y-b.y);
  for(const s of spr){const px=ox+s.x*TS,py=oy+s.y*TS;
-  if(s.art==='portal')portalArt(ctx,px,py+TS*.3,TS,s.kind,tm,s.p);else if(s.art==='board')boardArt(ctx,px,py+TS*.3,TS);
+  if(s.art==='pet'){petArt(ctx,px,py+TS*.3,TS,s.k,tm,s.mv)}else if(s.art==='portal')portalArt(ctx,px,py+TS*.3,TS,s.kind,tm,s.p);else if(s.art==='board')boardArt(ctx,px,py+TS*.3,TS);
   else if(s.art==='chest')chestArt(ctx,px,py+TS*.3,TS,tm);
   else if(s.art==='pick')pickArt(ctx,px,py+TS*.3,TS,tm,s.e,s.sh);
   else{ctx.fillStyle='rgba(0,0,0,.28)';ctx.beginPath();ctx.ellipse(px,py+TS*.3,TS*.3,TS*.1,0,0,7);ctx.fill();
@@ -880,7 +909,7 @@ function pickClass(k){pickCls=k;document.querySelectorAll('.cls button').forEach
 function startNew(){const nm=($('pname').value||'').trim()||'بطل';S=newState(nm,pickCls);startMusic();const s=stats();S.hp=s.maxHp;S.mp=s.maxMp;P.x=48.5;P.y=51.5;MODAL=null;
  openModal(`<div class="title"><h2>📖 البداية</h2><p style="text-align:right;font-size:15px;line-height:1.9">منذ مئات السنين، حمت «نجمة الصحراء» عين الماء في واحة النخيل. وفي ليلة بلا قمر، سُرقت النجمة وتكسرت، وبدأت العين تجف.<br><br>أنت ${esc(nm)}، غريب وصل الواحة جريح ومنهك. الشيخ سالم أنقذك، والآن أنت أمل أهل الواحة الأخير.<br><br>🎯 <b>اذهب وكلّم الشيخ سالم</b> (العلامة ❗ فوق رأسه). يقف شرق مركز الواحة.</p><div class="opts"><button onclick="closeModal();save()">يلا نبدأ</button></div></div>`);MODAL='intro';S.tracked=null}
 function loadGame(){try{S=JSON.parse(localStorage.getItem(SAVEKEY));P.x=S.x;P.y=S.y;restoreBounties();if(S.dun){const f=S.dun,px=S.x,py=S.y;S.dun=0;P.x=S.wpos[0];P.y=S.wpos[1];enterLayer(f,'in');P.x=px;P.y=py}closeModal();startMusic();toast('أهلاً من تاني يا '+S.name)}catch(e){newGameUI()}}
-function boot(){genWorld();buildEntities();for(const k of['village','port','fort']){const p=POI[k],pos=freeNear(p.x+3,p.y-2,4);BOARDS.push({n:p.n,x:pos.x,y:pos.y})}{const p=POI.cave,pos=freeNear(Math.round(p.x),Math.round(p.y+5),4);PORTALS.push({x:pos.x,y:pos.y,kind:'in'});HOUSES.forEach((h,i)=>{let bx=h.x+1,by=h.y+2;if(!walk(bx,by)){if(walk(bx-1,by))bx--;else return}PORTALS.push({x:bx+.5,y:by+.35,kind:'door',h:i})})}resize();requestAnimationFrame(frame);titleUI();window.__ready=1}
+function boot(){genWorld();buildEntities();for(const k of['village','port','fort']){const p=POI[k],pos=freeNear(p.x+3,p.y-2,4);BOARDS.push({n:p.n,x:pos.x,y:pos.y})}{const p=POI.cave,pos=freeNear(Math.round(p.x),Math.round(p.y+5),4);PORTALS.push({x:pos.x,y:pos.y,kind:'in'});{const pp=POI.port,q=freeNear(pp.x+2,pp.y+3,5);PORTALS.push({x:q.x,y:q.y,kind:'pets'})}HOUSES.forEach((h,i)=>{let bx=h.x+1,by=h.y+2;if(!walk(bx,by)){if(walk(bx-1,by))bx--;else return}PORTALS.push({x:bx+.5,y:by+.35,kind:'door',h:i})})}resize();requestAnimationFrame(frame);titleUI();window.__ready=1}
 // ===== music =====
 let MUTE=false;try{MUTE=localStorage.getItem('ss_mute')==='1'}catch(e){}
 const HIJ=[0,1,4,5,7,8,11,12];let musicOn=false,mstep=0;
