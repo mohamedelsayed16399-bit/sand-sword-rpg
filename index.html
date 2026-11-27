@@ -545,12 +545,12 @@ function restoreBounties(){for(const b of S.bnt||[])if(!qdef(b.id))QUESTS.push(b
 // ===== dungeon: سراديب كهف التنين (3 floors, layer swap) =====
 const PORTALS=[];let WORLD=null;
 T.DWALL=14;T.DFLOOR=15;BLOCK.add(14);TCOL[14]='#1c1624';TCOL[15]='#4a4252';
-ENEMY.warden={n:'حارس السرداب',e:'🗿',hp:330,atk:20,def:9,xp:220,g:150,boss:1};
-ENEMY.wraith={n:'ملكة الأشباح',e:'👻',hp:560,atk:26,def:8,xp:420,g:260,boss:1};
-ENEMY.pharaoh={n:'الفرعون المنسي',e:'👑',hp:900,atk:32,def:12,xp:900,g:600,boss:1};
+ENEMY.warden={n:'حارس السرداب',e:'🗿',hp:200,atk:15,def:7,xp:220,g:150,boss:1};
+ENEMY.wraith={n:'ملكة الأشباح',e:'👻',hp:300,atk:17,def:7,xp:420,g:260,boss:1};
+ENEMY.pharaoh={n:'الفرعون المنسي',e:'👑',hp:500,atk:22,def:9,xp:900,g:600,boss:1};
 ITEMS.w6={n:'سيف الفرعون',e:'👑',t:'w',v:38,p:4000};ITEMS.a6={n:'درع الحارس الذهبي',e:'🛡️',t:'a',v:26,p:3600};
 const DUN_EN=[null,['bat','spider','skeleton','snake','bat'],['skeleton','ghost','mummy','golem','skeleton'],['ghost','golem','ogre','mummy','ghost']];
-const DUN_BOSS=[null,'warden','wraith','pharaoh'],DUN_LVL=[0,7,11,15];
+const DUN_BOSS=[null,'warden','wraith','pharaoh'],DUN_LVL=[0,6,10,14];
 function genDungeon(f){
  const rg=mulberry(SEED*7+f*131),rn=(a,b)=>a+Math.floor(rg()*(b-a+1));
  tile.fill(T.DWALL);deco.fill('');for(let i=0;i<W*H;i++)vari[i]=hash2(i%W,(i/W)|0,40+f);
@@ -577,7 +577,7 @@ function genDungeon(f){
    MONS.push({i:'d'+f+'_'+n,id,lvl:lv+rn(0,2),x:x+.5,y:y+.5,hx:x+.5,hy:y+.5,t:rg()*5,vx:0,vy:0,boss:0});n++}
   if(ri!==rooms.length-1&&rg()<.55){const x=rn(r.x+1,r.x+r.w-2),y=rn(r.y+1,r.y+r.h-2);CHESTS.push({id:'dc'+f+'_'+ri,x:x+.5,y:y+.5,tier:3+f})}});
  const bid='d'+f+'_boss';
- MONS.push({i:bid,id:DUN_BOSS[f],lvl:lv+3,x:last.cx+.5,y:last.cy-1.5,hx:last.cx+.5,hy:last.cy-1.5,t:0,vx:0,vy:0,boss:1});
+ MONS.push({i:bid,id:DUN_BOSS[f],lvl:[0,8,11,14][f],x:last.cx+.5,y:last.cy-1.5,hx:last.cx+.5,hy:last.cy-1.5,t:0,vx:0,vy:0,boss:1});
  CHESTS.push({id:'dcb'+f,x:last.cx+2.5,y:last.cy+1.5,tier:5+f,need:bid});
  if(f===3){PICKS.push({id:'relic_w6',x:last.cx-2.5,y:last.cy+1.5,item:'w6',e:'👑',need:bid});PICKS.push({id:'relic_a6',x:last.cx-3.5,y:last.cy+1.5,item:'a6',e:'🛡️',need:bid})}
  return{first,last}}
