@@ -514,7 +514,7 @@ function questUI(){
  MODAL='q';const act=QUESTS.filter(q=>['active','ready'].includes(questStatus(q))),done=QUESTS.filter(q=>questStatus(q)==='done');
  const row=q=>{const st=questStatus(q),tg=questTarget(q);return`<div class="q ${st==='done'?'done':''}"><b>${q.side?'🔹':'⭐'} ${esc(q.title)}</b> ${st==='ready'?'<span style="color:#7fff9a">(جاهزة للتسليم)</span>':''}<br>${st==='done'?'✔ مكتملة':esc(qProgress(q))+(tg?'<br>📍 '+esc(tg.n)+' — '+dirName(P.x,P.y,tg.x,tg.y)+' ('+Math.round(Math.hypot(tg.x-P.x,tg.y-P.y))+' م)':'')}${st!=='done'?`<br><button style="padding:3px 9px;font-size:12px;margin-top:4px" onclick="S.tracked='${q.id}';questUI()">${S.tracked===q.id?'📌 متتبَّعة':'تتبّع'}</button>`:''}</div>`};
  const avail=QUESTS.filter(q=>!q.side&&questStatus(q)==='new'&&(!q.pre||(S.q[q.pre]&&S.q[q.pre].s==='done')));
- openModal(`<h2>📜 المهام</h2>${act.map(row).join('')||'<div class="small">مفيش مهام نشطة. كلّم الناس في القرى!</div>'}${avail.length?'<div class="q">📣 المهمة الرئيسية التالية عند: <b>'+esc(NPCS.find(n=>n.id===avail[0].giver).n)+'</b> ('+LOC_NAME[NPCS.find(n=>n.id===avail[0].giver).poi]+')</div>':''}${done.length?'<h2 style="margin-top:12px">المكتملة ('+done.length+')</h2>'+done.map(row).join(''):''}<div class="opts"><button onclick="closeModal()">إغلاق</button></div>`)}
+ openModal(`<h2>📜 المهام</h2>${act.map(row).join('')||'<div class="small">مفيش مهام نشطة. كلّم الناس في القرى!</div>'}${avail.length?'<div class="q">📣 المهمة الرئيسية التالية عند: <b>'+esc(NPCS.find(n=>n.id===avail[0].giver).n)+'</b> ('+LOC_NAME[NPCS.find(n=>n.id===avail[0].giver).poi]+')</div>':''}${done.length?'<h2 style="margin-top:12px">المكتملة ('+done.length+')</h2>'+done.map(row).join(''):''}<div class="opts"><button onclick="achUI()">🏆 الإنجازات</button><button onclick="closeModal()">إغلاق</button></div>`)}
 // ===== map =====
 function mapUI(){
  MODAL='map';openModal(`<h2>🗺️ الخريطة</h2><canvas id="mapc" width="${W*5}" height="${H*5}"></canvas><div class="small">🟡 إنت | ⭐ مدن | 🔺 أماكن خطر</div><div class="opts" style="margin-top:8px"><button onclick="closeModal()">إغلاق</button></div>`);
@@ -599,9 +599,10 @@ function usePortal(p){
  else if(p.kind==='bed'){const s=stats();S.hp=s.maxHp;S.mp=s.maxMp;toast('🛏️ ارتحت وتعافيت بالكامل (مجانًا)',2600)}
  else if(p.kind==='res')residentTalk(p)
  else if(p.kind==='pets')petUI()
+ else if(p.kind==='cara')caraUI(p)
  else if(p.kind==='up'){if(S.dun>1){enterLayer(S.dun-1,'up');toast('⬆️ الطابق '+S.dun,2200)}else{const w=WORLD.O.find(o=>o.kind==='in');exitLayer();P.x=w?w.x:P.x;P.y=w?w.y+1.4:P.y;toast('☀️ خرجت من السراديب',2200)}}
  beep(300,.25,'triangle');save()}
-function portalArt(c,x,y,S,kind,t,p){const u=S/40;c.save();c.translate(x,y);
+function portalArt(c,x,y,S,kind,t,p){const u=S/40;if(kind==='cara'){caraArt(c,x,y,S,t);return}c.save();c.translate(x,y);
  if(kind==='door'){c.fillStyle='rgba(255,210,80,'+(.5+Math.sin(t*4)*.25)+')';c.beginPath();c.moveTo(0,-4*u);c.lineTo(6*u,-12*u);c.lineTo(-6*u,-12*u);c.fill()}
  else if(kind==='out'){c.fillStyle='#6a4a22';c.fillRect(-14*u,-30*u,28*u,32*u);c.fillStyle='#f4e4b0';c.fillRect(-10*u,-26*u,20*u,26*u);c.fillStyle='rgba(255,255,220,.8)';c.fillRect(-8*u,-24*u,16*u,22*u)}
  else if(kind==='pets'){c.fillStyle='#6a4a22';c.fillRect(-18*u,-26*u,3*u,26*u);c.fillRect(15*u,-26*u,3*u,26*u);c.fillStyle='#b83a3a';c.fillRect(-20*u,-34*u,40*u,9*u);c.fillStyle='#fff3d6';for(let i=0;i<4;i++)c.fillRect((-18+i*10)*u,-34*u,5*u,9*u);c.fillStyle='#fff';c.font='bold '+Math.floor(13*u)+'px sans-serif';c.textAlign='center';c.fillText('رفاق',0,-12*u);petArt(c,10*u,0,S,'hound',t,0)}
@@ -655,7 +656,7 @@ function craftUI(msg){
  const rec=RECIPES.map(([id,c],i)=>`<div class="item"><b>${item(id).e} ${item(id).n}</b><div class="d">${costStr(c)}</div><button ${canPay(c)?'':'disabled'} onclick="craftDo(${i})">صنّع</button></div>`).join('');
  const en=['w','a'].map(k=>{const L=S.enh[k],c=enhCost(k);return`<div class="item"><b>${k==='w'?'⚔️ تقوية السلاح':'🛡️ تقوية الدرع'} (+${L}/8)</b><div class="d">${k==='w'?'هجوم +3':'دفاع +2'} لكل مستوى${L<8?' · التكلفة '+costStr(c):' · وصلت للحد الأقصى'}</div><button ${L<8&&canPay(c)?'':'disabled'} onclick="enhDo('${k}')">قوّي</button></div>`}).join('');
  openModal(`<h2>⚒️ الورشة</h2>${msg?'<div class="small">'+msg+'</div>':''}<div class="q">${mats}<br><span class="small">المواد بتيجي من الوحوش (الزعماء 3 قطع) ومن السراديب.</span></div><h3>تصنيع</h3>${rec}<h3>تقوية المعدات</h3>${en}<div class="opts"><button onclick="invUI()">رجوع للحقيبة</button><button onclick="closeModal()">إغلاق</button></div>`)}
-function craftDo(i){const[id,c]=RECIPES[i];if(!canPay(c))return;for(const k in c)give(k,-c[k]);give(id);beep(800,.12,'triangle');save();craftUI('صنعت '+item(id).n)}
+function craftDo(i){const[id,c]=RECIPES[i];if(!canPay(c))return;for(const k in c)give(k,-c[k]);give(id);S.cr=(S.cr||0)+1;beep(800,.12,'triangle');save();craftUI('صنعت '+item(id).n)}
 function enhDo(k){const c=enhCost(k);S.enh=S.enh||{w:0,a:0};if(S.enh[k]>=8||!canPay(c))return;for(const x in c){if(x==='g')S.gold-=c[x];else give(x,-c[x])}S.enh[k]++;beep(500,.2,'sawtooth');setTimeout(()=>beep(900,.2,'triangle'),150);save();craftUI('✨ نجحت التقوية! '+(k==='w'?'السلاح':'الدرع')+' بقى +'+S.enh[k])}
 // ===== companions =====
 const PETS={falcon:{n:'صقر',e:'🦅',p:220,d:'يضرب كل دور بضرر يتجاهل الدفاع (35% من هجومك)'},hound:{n:'كلب صحراوي',e:'🐕',p:260,d:'بيعض (25%) ويقلل ضرر العدو 20%'},cat:{n:'قطة الواحة',e:'🐈',p:200,d:'بتشفيك 4% من صحتك كل دور وبتخربش (10%)'}};
@@ -680,6 +681,38 @@ function petArt(c,x,y,S,k,t,mv){const u=S/40;c.save();c.translate(x,y);
  else if(k==='hound'){c.translate(0,b);c.fillStyle='#c89a5a';c.beginPath();c.ellipse(0,-9*u,10*u,6*u,0,0,7);c.fill();c.beginPath();c.arc(9*u,-14*u,5*u,0,7);c.fill();c.fillStyle='#8a5a2a';c.beginPath();c.moveTo(8*u,-18*u);c.lineTo(6*u,-24*u);c.lineTo(12*u,-19*u);c.fill();c.fillRect(-7*u,-5*u,3*u,6*u);c.fillRect(4*u,-5*u,3*u,6*u);c.strokeStyle='#c89a5a';c.lineWidth=3*u;c.beginPath();c.moveTo(-10*u,-11*u);c.quadraticCurveTo(-16*u,-18*u,-14*u,-22*u+Math.sin(t*8)*3*u);c.stroke();c.fillStyle='#222';c.fillRect(11*u,-15*u,2*u,2*u)}
  else{c.translate(0,b);c.fillStyle='#d8d0c0';c.beginPath();c.ellipse(0,-8*u,8*u,5.5*u,0,0,7);c.fill();c.beginPath();c.arc(8*u,-12*u,4.5*u,0,7);c.fill();c.beginPath();c.moveTo(5*u,-15*u);c.lineTo(5.5*u,-20*u);c.lineTo(8*u,-16*u);c.moveTo(9*u,-16*u);c.lineTo(11*u,-20*u);c.lineTo(12*u,-14*u);c.fill();c.strokeStyle='#d8d0c0';c.lineWidth=2.5*u;c.beginPath();c.moveTo(-8*u,-8*u);c.quadraticCurveTo(-15*u,-14*u,-11*u,-20*u+Math.sin(t*5)*2*u);c.stroke();c.fillStyle='#2a7a3a';c.fillRect(9*u,-13*u,2*u,2*u)}
  c.restore()}
+// ===== achievements & caravan events =====
+const cnt=p=>Object.keys(S.taken||{}).filter(k=>k.startsWith(p)).length;
+const ACH=[
+ ['k10','صياد مبتدئ','اقتل 10 وحوش',()=>S.kills>=10,{g:30}],['k50','صياد ماهر','اقتل 50 وحش',()=>S.kills>=50,{g:100}],['k200','سفاح الرمال','اقتل 200 وحش',()=>S.kills>=200,{g:400,sp:1}],
+ ['l5','مغامر','وصّل مستوى 5',()=>S.lvl>=5,{g:40}],['l10','محارب','وصّل مستوى 10',()=>S.lvl>=10,{g:120,sp:1}],['l20','بطل','وصّل مستوى 20',()=>S.lvl>=20,{g:500,sp:2}],
+ ['g1k','تاجر','اجمع 1000 ذهب',()=>S.gold>=1000,{g:100}],['ch10','لص الكنوز','افتح 10 صناديق',()=>Object.keys(S.opened).length>=10,{g:80}],['ch30','صائد الكنوز','افتح 30 صندوق',()=>Object.keys(S.opened).length>=30,{g:250,sp:1}],
+ ['q5','خدوم','خلّص 5 مهام',()=>Object.values(S.q).filter(q=>q.s==='done').length>=5,{g:100}],['q15','بطل المهام','خلّص 15 مهمة',()=>Object.values(S.q).filter(q=>q.s==='done').length>=15,{g:300,sp:1}],
+ ['main','محرر الواحة','خلّص المهمة الرئيسية الأخيرة',()=>S.q.m5&&S.q.m5.s==='done',{g:500,sp:2}],
+ ['dun1','نازل السرداب','اهزم حارس السرداب',()=>S.dead['d1_boss']!==undefined,{g:150}],['dun2','صائد الأشباح','اهزم ملكة الأشباح',()=>S.dead['d2_boss']!==undefined,{g:250,sp:1}],['dun3','قاهر الفرعون','اهزم الفرعون المنسي',()=>S.dead['d3_boss']!==undefined,{g:600,sp:2}],
+ ['pet','صاحب رفيق','تبنّى رفيق',()=>!!S.pet,{g:50}],['pet5','مدرّب','درّب رفيقك لأعلى رتبة',()=>S.pet&&S.pet.t>=5,{g:300}],
+ ['enh3','حدّاد','قوّي سلاحك لـ +3',()=>S.enh&&S.enh.w>=3,{g:100}],['enh8','أسطورة الحديد','قوّي سلاحك لـ +8',()=>S.enh&&S.enh.w>=8,{g:500,sp:1}],
+ ['craft5','صنايعي','صنّع 5 حاجات',()=>(S.cr||0)>=5,{g:80}],['house8','ضيف عزيز','زور 8 بيوت',()=>cnt('hr')>=8,{g:100}],['house16','ابن البلد','زور كل البيوت',()=>cnt('hr')>=16,{g:300,sp:1}],
+ ['cara','تاجر القوافل','اشتري من قافلة',()=>(S.cb||0)>=1,{g:60}]];
+function achCheck(){if(!S)return;S.ach=S.ach||{};for(const a of ACH){if(S.ach[a[0]])continue;let ok=false;try{ok=!!a[3]()}catch(e){}if(ok){S.ach[a[0]]=1;S.gold+=a[4].g;if(a[4].sp)S.sp=(S.sp||0)+a[4].sp;toast('🏆 إنجاز: '+a[1]+' (+'+a[4].g+' ذهب'+(a[4].sp?' +'+a[4].sp+' نقطة مهارة':'')+')',3500);beep(880,.15,'triangle');setTimeout(()=>beep(1180,.2,'triangle'),160);save();break}}}
+function achUI(){MODAL='ach';S.ach=S.ach||{};const n=Object.keys(S.ach).length;
+ openModal(`<h2>🏆 الإنجازات (${n}/${ACH.length})</h2>${ACH.map(a=>`<div class="q ${S.ach[a[0]]?'done':''}"><b>${S.ach[a[0]]?'✔':'🔒'} ${a[1]}</b><br><span class="small">${a[2]} · جايزة ${a[4].g} ذهب${a[4].sp?' + '+a[4].sp+' نقطة مهارة':''}</span></div>`).join('')}<div class="opts"><button onclick="questUI()">رجوع للمهام</button><button onclick="closeModal()">إغلاق</button></div>`)}
+// caravan
+const CARA_POOL=[['p2',35],['p3',100],['m1',20],['ore',28,2],['ecto',45,1],['venom',18,2],['hide',14,3],['bone',14,3],['c2',150],['gem',0,0]];
+let caraT=90;
+function caraTick(dt){if(S.dun||MODAL||B)return;const ex=PORTALS.findIndex(p=>p.kind==='cara');
+ if(ex>=0){const p=PORTALS[ex];p.ttl-=dt;if(p.ttl<=0){PORTALS.splice(ex,1);toast('🐪 القافلة مشيت')}return}
+ caraT-=dt;if(caraT>0)return;caraT=150+R()*150;
+ for(let k=0;k<60;k++){const a=R()*6.28,d=10+R()*10,x=Math.floor(P.x+Math.cos(a)*d),y=Math.floor(P.y+Math.sin(a)*d);if(!inb(x,y)||!walk(x,y)||inSafe(x,y))continue;const t=tile[idx(x,y)];if(t===T.SHALLOW||t===T.DEEP||t===T.PATH)continue;
+  const pool=CARA_POOL.filter(o=>o[0]!=='gem').sort(()=>R()-.5).slice(0,4);
+  PORTALS.push({x:x+.5,y:y+.5,kind:'cara',ttl:150,offers:pool.map(o=>({id:o[0],p:o[1],n:o[2]||1,sold:0}))});
+  toast('🐪 قافلة تجار ظهرت '+dirName(P.x,P.y,x,y)+' منك! (دقيقتين ونص)',4200);beep(500,.2,'triangle');return}}
+function caraUI(p,msg){MODAL='cara';
+ openModal(`<h2>🐪 قافلة التجار</h2>${msg?'<div class="small">'+msg+'</div>':''}<div class="q">🪙 ${S.gold} · بتمشي بعد ${Math.ceil(p.ttl)} ثانية</div>${p.offers.map((o,i)=>`<div class="item"><b>${item(o.id).e} ${item(o.id).n} ×${o.n}</b><div class="d">${item(o.id).d||''}</div><button ${o.sold||S.gold<o.p?'disabled':''} onclick="caraBuy(${i})">${o.sold?'اتباع':'اشتري 🪙'+o.p}</button></div>`).join('')}<div class="opts"><button onclick="closeModal()">إغلاق</button></div>`);window.__cp=p}
+function caraBuy(i){const p=window.__cp,o=p&&p.offers[i];if(!o||o.sold||S.gold<o.p)return;S.gold-=o.p;give(o.id,o.n);o.sold=1;S.cb=(S.cb||0)+1;beep(800,.12,'triangle');save();caraUI(p,'✅ اشتريت '+item(o.id).n)}
+function caraArt(c,x,y,S,t){const u=S/40;c.save();c.translate(x,y);c.fillStyle='rgba(0,0,0,.25)';c.beginPath();c.ellipse(0,0,16*u,4*u,0,0,7);c.fill();
+ const b=Math.sin(t*2)*1.5*u;c.translate(0,b);c.fillStyle='#c8a064';c.beginPath();c.ellipse(0,-14*u,13*u,7*u,0,0,7);c.fill();c.beginPath();c.arc(-4*u,-22*u,5*u,0,7);c.arc(4*u,-22*u,5*u,0,7);c.fill();c.lineWidth=4*u;c.strokeStyle='#c8a064';c.beginPath();c.moveTo(11*u,-16*u);c.quadraticCurveTo(18*u,-26*u,16*u,-34*u);c.stroke();c.fillStyle='#c8a064';c.beginPath();c.ellipse(17*u,-35*u,5*u,3*u,0,0,7);c.fill();
+ c.fillRect(-9*u,-9*u,3*u,10*u);c.fillRect(6*u,-9*u,3*u,10*u);c.fillStyle='#b83a3a';c.fillRect(-10*u,-27*u,20*u,6*u);c.fillStyle='#2a6ab8';c.fillRect(-8*u,-31*u,16*u,5*u);c.fillStyle='#ffd24a';c.beginPath();c.arc(0,-40*u,3*u,0,7);c.fill();c.restore()}
 // ===== battle =====
 let B=null,graceUntil=0;
 function startBattle(mon){
@@ -807,6 +840,7 @@ function update(dt){
   const m=Math.hypot(mx,my);if(m>1){mx/=m;my/=m}
   if(m>.08){const t=tile[idx(Math.floor(P.x),Math.floor(P.y))];const sp=4.3*(t===T.SHALLOW?.55:1);const nx=P.x+mx*sp*dt,ny=P.y+my*sp*dt;if(canStand(nx,P.y))P.x=nx;if(canStand(P.x,ny))P.y=ny;if(mx!==0)P.face=mx>0?1:-1;P.step+=dt*9;P.moving=1}else P.moving=0;
   {if(!PET.on){PET.x=P.x-.8;PET.y=P.y+.4;PET.on=true}const dx=P.x-.9*P.face-PET.x,dy=P.y+.3-PET.y,k=Math.min(1,dt*4);if(Math.hypot(dx,dy)>6){PET.x=P.x-.8;PET.y=P.y+.4}else{PET.x+=dx*k;PET.y+=dy*k;PET.mv=Math.hypot(dx,dy)>.15}}
+  caraTick(dt);if((S.achT=(S.achT||0)+dt)>2){S.achT=0;achCheck()}
   // monsters
   const night=darkness()>.5,now=performance.now();
   for(const mo of MONS){if(S.dead[mo.i]!==undefined){if(mo.boss||!(S.time-S.dead[mo.i]>360))continue;delete S.dead[mo.i];mo.x=mo.hx;mo.y=mo.hy}
@@ -836,7 +870,7 @@ function hud(){
  if(S.dun)z=typeof S.dun==='string'?'🏠 داخل بيت':'🕳️ السرداب · الطابق '+S.dun;$('zone').textContent=z;
  const q=S.tracked&&!S.dun&&qdef(S.tracked);const tg=q&&questStatus(q)!=='done'?questTarget(q):null;
  if(tg){const a=Math.atan2(tg.y-P.y,tg.x-P.x);$('arrow').style.transform=`rotate(${a}rad)`;$('ctext').textContent=tg.n+' · '+Math.round(Math.hypot(tg.x-P.x,tg.y-P.y))+' م';$('comp').style.display='flex'}else{$('comp').style.display='none';if(S.tracked&&q&&questStatus(q)==='done')S.tracked=null}
- const n=nearest();const ab=$('act');if(n&&!MODAL){ab.classList.add('on');ab.textContent=n.k==='npc'?'💬 كلّم':n.k==='chest'?'📦 افتح':n.k==='board'?'📌 اللوحة':n.k==='portal'?(({in:'🕳️ ادخل',down:'⬇️ انزل',up:'⬆️ اطلع',door:'🚪 ادخل',out:'🚪 اخرج',bed:'🛏️ ارتاح',res:'💬 كلّم',pets:'🐾 الرفاق'})[n.o.kind]):'✋ خد'}else{ab.classList.remove('on');ab.textContent='تفاعل'}
+ const n=nearest();const ab=$('act');if(n&&!MODAL){ab.classList.add('on');ab.textContent=n.k==='npc'?'💬 كلّم':n.k==='chest'?'📦 افتح':n.k==='board'?'📌 اللوحة':n.k==='portal'?(({in:'🕳️ ادخل',down:'⬇️ انزل',up:'⬆️ اطلع',door:'🚪 ادخل',out:'🚪 اخرج',bed:'🛏️ ارتاح',res:'💬 كلّم',pets:'🐾 الرفاق',cara:'🐪 تجارة'})[n.o.kind]):'✋ خد'}else{ab.classList.remove('on');ab.textContent='تفاعل'}
  if(!S.tracked){const a=QUESTS.find(q=>['active','ready'].includes(questStatus(q)));if(a)S.tracked=a.id}
 }
 function draw(t){
