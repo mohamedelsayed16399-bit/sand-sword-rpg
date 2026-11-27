@@ -341,7 +341,7 @@ function give(id,n=1){S.inv[id]=inv(id)+n;if(S.inv[id]<=0)delete S.inv[id]}
 function stats(){
  const c=CLASSES[S.cls],w=item(S.eq.w||'x'),a=item(S.eq.a||'x'),ch=S.eq.c?item(S.eq.c):{};
  const L=S.lvl;
- const k=S.sk||{};return{maxHp:38+L*10+c.hp*L+(ch.hp||0)+(k.hp||0)*12,maxMp:12+L*4+c.mp*L+(ch.mp||0)+(k.mp||0)*6,atk:3+L*2+c.atk+(w.v||0)+(ch.atk||0)+(k.atk||0)*2,def:L+(a.v||0)+(ch.def||0)+Math.round((k.def||0)*1.5)};
+ const k=S.sk||{};return{maxHp:38+L*10+c.hp*L+(ch.hp||0)+(k.hp||0)*12,maxMp:12+L*4+c.mp*L+(ch.mp||0)+(k.mp||0)*6,atk:3+L*2+c.atk+(w.v||0)+(ch.atk||0)+(k.atk||0)*2+((S.enh&&S.enh.w)||0)*3,def:L+(a.v||0)+(ch.def||0)+Math.round((k.def||0)*1.5)+((S.enh&&S.enh.a)||0)*2};
 }
 const xpNeed=l=>Math.round(18*Math.pow(l,1.7));
 function toast(t,ms=2200){const e=$('toast');e.textContent=t;e.style.opacity=1;clearTimeout(toast.t);toast.t=setTimeout(()=>e.style.opacity=0,ms)}
@@ -506,7 +506,7 @@ function invUI(msg){
   if(it.t==='w'||it.t==='a'||it.t==='c'){const on=S.eq[it.t==='w'?'w':it.t==='a'?'a':'c']===id;b=on?'<span class="small">✔ لابسه</span>':`<button onclick="A3('eq','${id}')">البس</button>`}
   const d=it.d||(it.v?(it.t==='w'?'هجوم +'+it.v:'دفاع +'+it.v):'');
   return`<div class="item"><b>${it.e} ${it.n} ×${n}</b><div class="d">${d}</div>${b}</div>`}).join('');
- openModal(`<h2>🎒 الحقيبة <span class="small" style="float:left">🪙 ${S.gold}</span></h2><div class="q">⚔️ ${eq('w')} | 🛡️ ${eq('a')} | ${S.eq.c?eq('c'):'💍 بدون تميمة'}<br>هجوم <b>${s.atk}</b> · دفاع <b>${s.def}</b> · صحة <b>${s.maxHp}</b> · طاقة <b>${s.maxMp}</b> · قتلت <b>${S.kills}</b></div>${msg?'<div class="small">'+msg+'</div>':''}<div class="grid">${g}</div><div class="opts" style="margin-top:10px"><button onclick="closeModal()">إغلاق</button></div>`)}
+ openModal(`<h2>🎒 الحقيبة <span class="small" style="float:left">🪙 ${S.gold}</span></h2><div class="opts"><button onclick="craftUI()">⚒️ ورشة التصنيع والتقوية</button></div><div class="q">⚔️ ${eq('w')} | 🛡️ ${eq('a')} | ${S.eq.c?eq('c'):'💍 بدون تميمة'}<br>هجوم <b>${s.atk}</b> · دفاع <b>${s.def}</b> · صحة <b>${s.maxHp}</b> · طاقة <b>${s.maxMp}</b> · قتلت <b>${S.kills}</b></div>${msg?'<div class="small">'+msg+'</div>':''}<div class="grid">${g}</div><div class="opts" style="margin-top:10px"><button onclick="closeModal()">إغلاق</button></div>`)}
 function A3(k,id){const it=item(id),s=stats();
  if(k==='use'){if(inv(id)<1)return;if(it.heal){if(S.hp>=s.maxHp)return invUI('صحتك كاملة');S.hp=Math.min(s.maxHp,S.hp+it.heal)}if(it.mana){if(S.mp>=s.maxMp)return invUI('طاقتك كاملة');S.mp=Math.min(s.maxMp,S.mp+it.mana)}give(id,-1);beep(700,.1,'triangle');invUI('استخدمت '+it.n)}
  else{S.eq[it.t==='w'?'w':it.t==='a'?'a':'c']=id;beep(300,.08);const s2=stats();S.hp=Math.min(S.hp,s2.maxHp);invUI('لبست '+it.n)}save()}
@@ -638,6 +638,23 @@ function residentTalk(p){
 function rn2(rg,a,b){return a+Math.floor(rg()*(b-a+1))}
 function interiorDeco(c,d,px,py,TS,t){const u=TS/40,cx=px+TS/2,by=py+TS*.92;
  if(d==='📚'){c.fillStyle='#5a3a1a';c.fillRect(px+2*u,py+4*u,TS-4*u,TS*.9);for(let r=0;r<3;r++)for(let k=0;k<5;k++){c.fillStyle=['#a03030','#3050a0','#30804a','#c0902a'][(k+r)%4];c.fillRect(px+(4+k*6)*u,py+(8+r*9)*u,4*u,7*u)}}}
+// ===== crafting & enhancement =====
+Object.assign(ITEMS,{hide:{n:'جلد خام',e:'🟫',t:'m',p:6,d:'مادة تصنيع'},bone:{n:'عظم',e:'🦴',t:'m',p:6,d:'مادة تصنيع'},venom:{n:'سم',e:'🧪',t:'m',p:8,d:'مادة تصنيع'},ore:{n:'خام حديد',e:'⛏️',t:'m',p:10,d:'مادة تصنيع'},ecto:{n:'جوهر شبح',e:'🔮',t:'m',p:16,d:'مادة تصنيع'}});
+const MATS=['hide','bone','venom','ore','ecto'];
+const MAT_OF={scorpion:'venom',snake:'venom',spider:'venom',wolf:'hide',boar:'hide',bat:'hide',crab:'hide',bandit:'ore',golem:'ore',ogre:'ore',warden:'ore',skeleton:'bone',mummy:'bone',elite:'hide',ghost:'ecto',wraith:'ecto',vizier:'ecto',pharaoh:'ecto',chief:'ore',dragon:'ore'};
+const RECIPES=[['p2',{venom:2,hide:1}],['m1',{venom:1,bone:1}],['p3',{ecto:2,venom:2,gem:1}],['c1',{ecto:3,ore:2,gem:2}]];
+function rollMat(en){const m=MAT_OF[en.id];if(!m)return'';const n=en.boss?3:(R()<.55?1:0);if(!n)return'';give(m,n);return item(m).e+' ×'+n}
+function enhCost(k){const L=(S.enh&&S.enh[k])||0;return k==='w'?{ore:2+L,bone:L>2?L-2:0,g:60*(L+1)}:{hide:2+L,ore:L>2?L-2:0,g:50*(L+1)}}
+function canPay(c){return Object.keys(c).every(k=>k==='g'?S.gold>=c[k]:inv(k)>=c[k])}
+function costStr(c){return Object.keys(c).filter(k=>c[k]).map(k=>k==='g'?'🪙'+c[k]+' ذهب':item(k).e+' '+item(k).n+' ×'+c[k]).join(' · ')}
+function craftUI(msg){
+ MODAL='craft';S.enh=S.enh||{w:0,a:0};
+ const mats=MATS.map(m=>`<span class="small">${item(m).e} ${item(m).n}: <b>${inv(m)}</b></span>`).join(' · ');
+ const rec=RECIPES.map(([id,c],i)=>`<div class="item"><b>${item(id).e} ${item(id).n}</b><div class="d">${costStr(c)}</div><button ${canPay(c)?'':'disabled'} onclick="craftDo(${i})">صنّع</button></div>`).join('');
+ const en=['w','a'].map(k=>{const L=S.enh[k],c=enhCost(k);return`<div class="item"><b>${k==='w'?'⚔️ تقوية السلاح':'🛡️ تقوية الدرع'} (+${L}/8)</b><div class="d">${k==='w'?'هجوم +3':'دفاع +2'} لكل مستوى${L<8?' · التكلفة '+costStr(c):' · وصلت للحد الأقصى'}</div><button ${L<8&&canPay(c)?'':'disabled'} onclick="enhDo('${k}')">قوّي</button></div>`}).join('');
+ openModal(`<h2>⚒️ الورشة</h2>${msg?'<div class="small">'+msg+'</div>':''}<div class="q">${mats}<br><span class="small">المواد بتيجي من الوحوش (الزعماء 3 قطع) ومن السراديب.</span></div><h3>تصنيع</h3>${rec}<h3>تقوية المعدات</h3>${en}<div class="opts"><button onclick="invUI()">رجوع للحقيبة</button><button onclick="closeModal()">إغلاق</button></div>`)}
+function craftDo(i){const[id,c]=RECIPES[i];if(!canPay(c))return;for(const k in c)give(k,-c[k]);give(id);beep(800,.12,'triangle');save();craftUI('صنعت '+item(id).n)}
+function enhDo(k){const c=enhCost(k);S.enh=S.enh||{w:0,a:0};if(S.enh[k]>=8||!canPay(c))return;for(const x in c){if(x==='g')S.gold-=c[x];else give(x,-c[x])}S.enh[k]++;beep(500,.2,'sawtooth');setTimeout(()=>beep(900,.2,'triangle'),150);save();craftUI('✨ نجحت التقوية! '+(k==='w'?'السلاح':'الدرع')+' بقى +'+S.enh[k])}
 // ===== battle =====
 let B=null,graceUntil=0;
 function startBattle(mon){
@@ -689,6 +706,7 @@ function winBattle(){
  const r=R();if(r<.3){give('p1');drops.push('🧪')}else if(r<.4){give('m1');drops.push('💧')}
  if(R()<.18+(en.boss?1:0)){const tier=Math.min(4,1+Math.floor(en.lvl/3));const id=pick(['w','a'])+tier;if(ITEMS[id]){give(id);drops.push(item(id).e+' '+item(id).n)}}
  if(R()<.15){give('gem');drops.push('💎')}
+ {const mt=rollMat(en.boss===undefined?{id:en.id||mon.id}:{id:mon.id,boss:en.boss});if(mt)drops.push(mt)}
  if(en.id==='chief'){give('key');drops.push('🗝️ مفتاح المعبد')}
  if(en.id==='dragon'){give('scale');give('w5');drops.push('🐲 قشرة تنين','🏜️ سيف الرمال!')}
  if(en.id==='vizier'){S.flags.vizier=1}
