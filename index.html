@@ -514,7 +514,7 @@ function questUI(){
  MODAL='q';const act=QUESTS.filter(q=>['active','ready'].includes(questStatus(q))),done=QUESTS.filter(q=>questStatus(q)==='done');
  const row=q=>{const st=questStatus(q),tg=questTarget(q);return`<div class="q ${st==='done'?'done':''}"><b>${q.side?'🔹':'⭐'} ${esc(q.title)}</b> ${st==='ready'?'<span style="color:#7fff9a">(جاهزة للتسليم)</span>':''}<br>${st==='done'?'✔ مكتملة':esc(qProgress(q))+(tg?'<br>📍 '+esc(tg.n)+' — '+dirName(P.x,P.y,tg.x,tg.y)+' ('+Math.round(Math.hypot(tg.x-P.x,tg.y-P.y))+' م)':'')}${st!=='done'?`<br><button style="padding:3px 9px;font-size:12px;margin-top:4px" onclick="S.tracked='${q.id}';questUI()">${S.tracked===q.id?'📌 متتبَّعة':'تتبّع'}</button>`:''}</div>`};
  const avail=QUESTS.filter(q=>!q.side&&questStatus(q)==='new'&&(!q.pre||(S.q[q.pre]&&S.q[q.pre].s==='done')));
- openModal(`<h2>📜 المهام</h2>${act.map(row).join('')||'<div class="small">مفيش مهام نشطة. كلّم الناس في القرى!</div>'}${avail.length?'<div class="q">📣 المهمة الرئيسية التالية عند: <b>'+esc(NPCS.find(n=>n.id===avail[0].giver).n)+'</b> ('+LOC_NAME[NPCS.find(n=>n.id===avail[0].giver).poi]+')</div>':''}${done.length?'<h2 style="margin-top:12px">المكتملة ('+done.length+')</h2>'+done.map(row).join(''):''}<div class="opts"><button onclick="achUI()">🏆 الإنجازات</button><button onclick="diffUI()">⚙️ الصعوبة</button><button onclick="closeModal()">إغلاق</button></div>`)}
+ openModal(`<h2>📜 المهام</h2>${act.map(row).join('')||'<div class="small">مفيش مهام نشطة. كلّم الناس في القرى!</div>'}${avail.length?'<div class="q">📣 المهمة الرئيسية التالية عند: <b>'+esc(NPCS.find(n=>n.id===avail[0].giver).n)+'</b> ('+LOC_NAME[NPCS.find(n=>n.id===avail[0].giver).poi]+')</div>':''}${done.length?'<h2 style="margin-top:12px">المكتملة ('+done.length+')</h2>'+done.map(row).join(''):''}<div class="opts"><button onclick="achUI()">🏆 الإنجازات</button><button onclick="bestiaryUI()">📖 الموسوعة</button><button onclick="diffUI()">⚙️ الصعوبة</button><button onclick="closeModal()">إغلاق</button></div>`)}
 // ===== map =====
 function mapUI(){
  MODAL='map';openModal(`<h2>🗺️ الخريطة</h2><canvas id="mapc" width="${W*5}" height="${H*5}"></canvas><div class="small">🟡 إنت | ⭐ مدن | 🔺 أماكن خطر | ⬛ لسه ما اتكشفش (${discPct()}% اتكشف)</div><div class="opts" style="margin-top:8px"><button onclick="closeModal()">إغلاق</button></div>`);
@@ -604,9 +604,10 @@ function usePortal(p){
  else if(p.kind==='arena')arenaUI()
  else if(p.kind==='fish')fishUI(p)
  else if(p.kind==='dig')digDo(p)
+ else if(p.kind==='dice'){DC=null;diceUI()}
  else if(p.kind==='up'){if(S.dun>1){enterLayer(S.dun-1,'up');toast('⬆️ الطابق '+S.dun,2200)}else{const w=WORLD.O.find(o=>o.kind==='in');exitLayer();P.x=w?w.x:P.x;P.y=w?w.y+1.4:P.y;toast('☀️ خرجت من السراديب',2200)}}
  beep(300,.25,'triangle');save()}
-function portalArt(c,x,y,S,kind,t,p){const u=S/40;if(kind==='cara'){caraArt(c,x,y,S,t);return}if(kind==='arena'){arenaArt(c,x,y,S,t);return}if(kind==='fish'){fishArt(c,x,y,S,t);return}if(kind==='dig'){digArt(c,x,y,S,t);return}c.save();c.translate(x,y);
+function portalArt(c,x,y,S,kind,t,p){const u=S/40;if(kind==='cara'){caraArt(c,x,y,S,t);return}if(kind==='arena'){arenaArt(c,x,y,S,t);return}if(kind==='fish'){fishArt(c,x,y,S,t);return}if(kind==='dig'){digArt(c,x,y,S,t);return}if(kind==='dice'){diceArt(c,x,y,S,t);return}c.save();c.translate(x,y);
  if(kind==='door'){c.fillStyle='rgba(255,210,80,'+(.5+Math.sin(t*4)*.25)+')';c.beginPath();c.moveTo(0,-4*u);c.lineTo(6*u,-12*u);c.lineTo(-6*u,-12*u);c.fill()}
  else if(kind==='out'){c.fillStyle='#6a4a22';c.fillRect(-14*u,-30*u,28*u,32*u);c.fillStyle='#f4e4b0';c.fillRect(-10*u,-26*u,20*u,26*u);c.fillStyle='rgba(255,255,220,.8)';c.fillRect(-8*u,-24*u,16*u,22*u)}
  else if(kind==='pets'){c.fillStyle='#6a4a22';c.fillRect(-18*u,-26*u,3*u,26*u);c.fillRect(15*u,-26*u,3*u,26*u);c.fillStyle='#b83a3a';c.fillRect(-20*u,-34*u,40*u,9*u);c.fillStyle='#fff3d6';for(let i=0;i<4;i++)c.fillRect((-18+i*10)*u,-34*u,5*u,9*u);c.fillStyle='#fff';c.font='bold '+Math.floor(13*u)+'px sans-serif';c.textAlign='center';c.fillText('رفاق',0,-12*u);petArt(c,10*u,0,S,'hound',t,0)}
@@ -695,6 +696,8 @@ const ACH=[
  ['main','محرر الواحة','خلّص المهمة الرئيسية الأخيرة',()=>S.q.m5&&S.q.m5.s==='done',{g:500,sp:2}],
  ['dun1','نازل السرداب','اهزم حارس السرداب',()=>S.dead['d1_boss']!==undefined,{g:150}],['dun2','صائد الأشباح','اهزم ملكة الأشباح',()=>S.dead['d2_boss']!==undefined,{g:250,sp:1}],['dun3','قاهر الفرعون','اهزم الفرعون المنسي',()=>S.dead['d3_boss']!==undefined,{g:600,sp:2}],
  ['dig3','منقّب','اكتشف 3 كنوز مدفونة',()=>(S.dg||0)>=3,{g:120}],['dig10','سيد الكنوز','اكتشف 10 كنوز مدفونة',()=>(S.dg||0)>=10,{g:500,sp:1}],
+ ['bk10','عالِم وحوش','سجّل 10 أنواع وحوش في الموسوعة',()=>Object.keys(S.bk||{}).length>=10,{g:150}],['bkall','موسوعة الرمال','سجّل كل أنواع الوحوش',()=>Object.keys(S.bk||{}).length>=Object.keys(ENEMY).length,{g:600,sp:2}],
+ ['dw10','حظ حلو','اكسب 10 جولات زهر',()=>(S.dw||0)>=10,{g:100}],['ds5','ملك الزهر','اكسب 5 جولات ورا بعض',()=>(S.dcb||0)>=5,{g:300}],
  ['pet','صاحب رفيق','تبنّى رفيق',()=>!!S.pet,{g:50}],['pet5','مدرّب','درّب رفيقك لأعلى رتبة',()=>S.pet&&S.pet.t>=5,{g:300}],
  ['enh3','حدّاد','قوّي سلاحك لـ +3',()=>S.enh&&S.enh.w>=3,{g:100}],['enh8','أسطورة الحديد','قوّي سلاحك لـ +8',()=>S.enh&&S.enh.w>=8,{g:500,sp:1}],
  ['craft5','صنايعي','صنّع 5 حاجات',()=>(S.cr||0)>=5,{g:80}],['house8','ضيف عزيز','زور 8 بيوت',()=>cnt('hr')>=8,{g:100}],['house16','ابن البلد','زور كل البيوت',()=>cnt('hr')>=16,{g:300,sp:1}],
@@ -778,6 +781,31 @@ function digDo(p){S.dugd=S.dugd||{};S.dugd[p.id]=1;S.dg=(S.dg||0)+1;const g=60+M
  if(r>.9){const pid=Object.keys(ITEMS).filter(k=>ITEMS[k].t==='p')[Math.floor(Math.random()*3)];if(pid){give(pid,1);got.push(item(pid).e+' '+item(pid).n)}}
  digPrune();toast('⛏️ حفرت ولقيت: '+got.join(' + '),3600);beep(700,.15,'triangle');save()}
 function digArt(c,x,y,S,t){if(Math.hypot(P.x-(x/TS),P.y-(y/TS))>0&&false)return;const u=S/40;c.save();c.translate(x,y);c.strokeStyle='#b0301c';c.lineWidth=4*u;c.lineCap='round';const a=1+Math.sin(t*3)*.12;c.beginPath();c.moveTo(-8*u*a,-8*u*a);c.lineTo(8*u*a,8*u*a);c.moveTo(8*u*a,-8*u*a);c.lineTo(-8*u*a,8*u*a);c.stroke();c.fillStyle='rgba(60,40,20,.5)';c.beginPath();c.ellipse(0,10*u,12*u,4*u,0,0,7);c.fill();c.restore()}
+// ===== bestiary =====
+const _onKill=onKill;onKill=function(en,mon){_onKill(en,mon);S.bk=S.bk||{};S.bk[en.id]=(S.bk[en.id]||0)+1;if(S.bk[en.id]===1)toast('📖 اتسجّل في الموسوعة: '+(ENEMY[en.id]?ENEMY[en.id].n:en.id),2200)};
+const BK_T=[5,15,40];
+function bkTier(k){return BK_T.filter(t=>k>=t).length}
+function bkReward(id,t){const e=ENEMY[id];return Math.round((e.g*6+e.xp*4)*t)}
+function bestiaryUI(){S.bk=S.bk||{};S.bkc=S.bkc||{};const ids=Object.keys(ENEMY);const seen=ids.filter(i=>S.bk[i]).length;
+ openModal(`<h2>📖 موسوعة الوحوش (${seen}/${ids.length})</h2><div class="small">اقتل 5 / 15 / 40 من كل وحش واستلم جايزة لكل مستوى.</div><div class="grid">${ids.map(id=>{const e=ENEMY[id],k=S.bk[id]||0,t=bkTier(k),c=S.bkc[id]||0,nx=BK_T[t];
+  return `<div class="item"><b>${k?e.e+' '+e.n:'❔ مجهول'}</b><div class="d">${k?'قتلت: '+k+(nx?' / '+nx:' ✔ مكتمل')+(k?'<br>❤️ '+e.hp+' ⚔️ '+e.atk+' 🛡️ '+e.def:''):''}</div>${t>c?`<button onclick="bkClaim('${id}')">استلم ${bkReward(id,t-c)} ذهب</button>`:''}</div>`}).join('')}</div><div class="opts" style="margin-top:8px"><button onclick="questUI()">رجوع للمهام</button><button onclick="closeModal()">إغلاق</button></div>`);MODAL='bestiary'}
+function bkClaim(id){S.bkc=S.bkc||{};const t=bkTier(S.bk[id]||0),c=S.bkc[id]||0;if(t<=c)return;const g=bkReward(id,t-c);S.gold+=g;S.bkc[id]=t;if(t>=3&&!S.bkx)S.bkx=0;beep(800,.12,'triangle');toast('📖 +'+g+' ذهب',1600);save();bestiaryUI()}
+// ===== tavern dice (زهر) =====
+let DC=null;
+function diceUI(msg){if(!DC)DC={bet:20,res:msg||'ارمي الزهر. اللي مجموعه أعلى ياخد الرهان!',d:null};if(msg)DC.res=msg;
+ const bets=[10,20,50,100,250,500],streak=S.dcs||0;
+ MODAL='dice';openModal(`<h2>🎲 زهر القهوة</h2><div class="q">معاك: <b>${S.gold}</b> ذهب · سلسلة الفوز: <b>${streak}</b> · أحسن سلسلة: ${S.dcb||0}<br><span class="small">${DC.res}</span></div>
+ ${DC.d?`<div style="font-size:40px;text-align:center;direction:ltr;margin:6px 0">${DC.d.map(n=>'⚀⚁⚂⚃⚄⚅'[n-1]).join(' ')}</div>`:''}
+ <div class="small">الرهان:</div><div class="opts">${bets.map(b=>`<button ${b===DC.bet?'style="outline:2px solid #ffd24a"':''} onclick="DC.bet=${b};diceUI()">${b}</button>`).join('')}</div>
+ <div class="opts" style="margin-top:8px"><button ${S.gold<DC.bet?'disabled':''} onclick="diceRoll()">🎲 ارمي (رهان ${DC.bet})</button><button onclick="DC=null;closeModal()">إغلاق</button></div>`)}
+function diceRoll(){if(S.gold<DC.bet)return;const r=()=>1+Math.floor(Math.random()*6);const me=[r(),r()],he=[r(),r()],a=me[0]+me[1],b=he[0]+he[1];
+ S.gold-=DC.bet;let res;DC.d=me;
+ if(a>b){S.gold+=DC.bet*2;S.dcs=(S.dcs||0)+1;S.dcb=Math.max(S.dcb||0,S.dcs);S.dw=(S.dw||0)+1;res='✅ كسبت! مجموعك '+a+' ضد '+b+' (التاجر: '+he.map(n=>'⚀⚁⚂⚃⚄⚅'[n-1]).join(' ')+') +'+DC.bet;if(a===12){S.gold+=DC.bet;res+=' + بونص دبل ستة '+DC.bet;}beep(880,.15,'triangle')}
+ else if(a===b){S.gold+=DC.bet;res='🤝 تعادل '+a+' ضد '+b+'. رجعلك رهانك'}
+ else{S.dcs=0;res='❌ خسرت. مجموعك '+a+' ضد '+b+' (التاجر: '+he.map(n=>'⚀⚁⚂⚃⚄⚅'[n-1]).join(' ')+') -'+DC.bet;beep(200,.15,'sawtooth')}
+ save();diceUI(res)}
+function diceArt(c,x,y,S,t){const u=S/40;c.save();c.translate(x,y);c.fillStyle='#6a4a22';c.fillRect(-14*u,-14*u,28*u,14*u);c.fillStyle='#8a5a2a';c.fillRect(-16*u,-16*u,32*u,4*u);
+ for(const [dx,k] of [[-7,0],[7,1]]){c.save();c.translate(dx*u,-22*u+Math.abs(Math.sin(t*2+k*2))*-3*u);c.rotate(Math.sin(t+k)*.2);c.fillStyle='#f6ecd0';c.fillRect(-6*u,-6*u,12*u,12*u);c.fillStyle='#222';for(const [px,py] of [[-3,-3],[3,3],[0,0]]){c.beginPath();c.arc(px*u,py*u,1.4*u,0,7);c.fill()}c.restore()}c.restore()}
 // ===== battle =====
 let B=null,graceUntil=0;
 function startBattle(mon){
@@ -878,7 +906,7 @@ function nearest(){
  for(const b of BOARDS){const d=Math.hypot(b.x-P.x,b.y-P.y);if(d<bd){bd=d;best={k:'board',o:b,l:'لوحة المطلوبين'}}}
  for(const c of CHESTS){if(S.opened[c.id]||(c.need&&S.dead[c.need]===undefined))continue;const d=Math.hypot(c.x-P.x,c.y-P.y);if(d<bd){bd=d;best={k:'chest',o:c,l:'افتح الصندوق'}}}
  for(const k of PICKS){if(S.taken[k.id]||!pickVisible(k))continue;const d=Math.hypot(k.x-P.x,k.y-P.y);if(d<bd){bd=d;best={k:'pick',o:k,l:'التقط '+item(k.item).n}}}
- for(const p of PORTALS){const d=Math.hypot(p.x-P.x,p.y-P.y);if(d<bd+.4){bd=d;best={k:'portal',o:p,l:p.kind==='dig'?'احفر هنا ⛏️':p.kind==='in'?'ادخل السرداب':p.kind==='down'?'انزل':'اطلع'}}}
+ for(const p of PORTALS){const d=Math.hypot(p.x-P.x,p.y-P.y);if(d<bd+.4){bd=d;best={k:'portal',o:p,l:p.kind==='dice'?'العب زهر 🎲':p.kind==='dig'?'احفر هنا ⛏️':p.kind==='in'?'ادخل السرداب':p.kind==='down'?'انزل':'اطلع'}}}
  return best}
 function pickVisible(k){if(k.need)return S.dead[k.need]!==undefined;if(k.always)return true;const st=S.q[k.qid];return st&&st.s==='active'}
 function interact(){const n=nearest();if(!n)return;
@@ -1012,7 +1040,7 @@ function pickClass(k){pickCls=k;document.querySelectorAll('.cls button').forEach
 function startNew(){const nm=($('pname').value||'').trim()||'بطل';S=newState(nm,pickCls);startMusic();const s=stats();S.hp=s.maxHp;S.mp=s.maxMp;P.x=48.5;P.y=51.5;MODAL=null;
  openModal(`<div class="title"><h2>📖 البداية</h2><p style="text-align:right;font-size:15px;line-height:1.9">منذ مئات السنين، حمت «نجمة الصحراء» عين الماء في واحة النخيل. وفي ليلة بلا قمر، سُرقت النجمة وتكسرت، وبدأت العين تجف.<br><br>أنت ${esc(nm)}، غريب وصل الواحة جريح ومنهك. الشيخ سالم أنقذك، والآن أنت أمل أهل الواحة الأخير.<br><br>🎯 <b>اذهب وكلّم الشيخ سالم</b> (العلامة ❗ فوق رأسه). يقف شرق مركز الواحة.</p><div class="opts"><button onclick="closeModal();save()">يلا نبدأ</button></div></div>`);MODAL='intro';S.tracked=null}
 function loadGame(){try{S=JSON.parse(localStorage.getItem(SAVEKEY));P.x=S.x;P.y=S.y;restoreBounties();digPrune();if(S.dun){const f=S.dun,px=S.x,py=S.y;S.dun=0;P.x=S.wpos[0];P.y=S.wpos[1];enterLayer(f,'in');P.x=px;P.y=py}closeModal();startMusic();toast('أهلاً من تاني يا '+S.name)}catch(e){newGameUI()}}
-function boot(){genWorld();buildEntities();for(const k of['village','port','fort']){const p=POI[k],pos=freeNear(p.x+3,p.y-2,4);BOARDS.push({n:p.n,x:pos.x,y:pos.y})}{const p=POI.cave,pos=freeNear(Math.round(p.x),Math.round(p.y+5),4);PORTALS.push({x:pos.x,y:pos.y,kind:'in'});{const pp=POI.port,q=freeNear(pp.x+2,pp.y+3,5);PORTALS.push({x:q.x,y:q.y,kind:'pets'});const fp=POI.fort,fq=freeNear(fp.x-2,fp.y+4,5);PORTALS.push({x:fq.x,y:fq.y,kind:'arena'});PORTALS.push(...fishSpots());PORTALS.push(...digSpots())}HOUSES.forEach((h,i)=>{let bx=h.x+1,by=h.y+2;if(!walk(bx,by)){if(walk(bx-1,by))bx--;else return}PORTALS.push({x:bx+.5,y:by+.35,kind:'door',h:i})})}resize();requestAnimationFrame(frame);titleUI();window.__ready=1}
+function boot(){genWorld();buildEntities();for(const k of['village','port','fort']){const p=POI[k],pos=freeNear(p.x+3,p.y-2,4);BOARDS.push({n:p.n,x:pos.x,y:pos.y})}{const p=POI.cave,pos=freeNear(Math.round(p.x),Math.round(p.y+5),4);PORTALS.push({x:pos.x,y:pos.y,kind:'in'});{const pp=POI.port,q=freeNear(pp.x+2,pp.y+3,5);PORTALS.push({x:q.x,y:q.y,kind:'pets'});const fp=POI.fort,fq=freeNear(fp.x-2,fp.y+4,5);PORTALS.push({x:fq.x,y:fq.y,kind:'arena'});PORTALS.push(...fishSpots());PORTALS.push(...digSpots());{const vp=POI.village,q=freeNear(vp.x-2,vp.y+4,5);PORTALS.push({x:q.x,y:q.y,kind:'dice'})}}HOUSES.forEach((h,i)=>{let bx=h.x+1,by=h.y+2;if(!walk(bx,by)){if(walk(bx-1,by))bx--;else return}PORTALS.push({x:bx+.5,y:by+.35,kind:'door',h:i})})}resize();requestAnimationFrame(frame);titleUI();window.__ready=1}
 // ===== music =====
 let MUTE=false;try{MUTE=localStorage.getItem('ss_mute')==='1'}catch(e){}
 const HIJ=[0,1,4,5,7,8,11,12];let musicOn=false,mstep=0;
